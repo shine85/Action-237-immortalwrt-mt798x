@@ -3,6 +3,12 @@ name: Build 360T7 +mihomo
 on:
   repository_dispatch:
   workflow_dispatch:
+    inputs:
+      COMPILATION_INFORMATION:
+        description: '是否显示编译信息'
+        required: false
+        default: 'true'
+        type: boolean
 
 env:
   REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-23.05
