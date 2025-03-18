@@ -16,6 +16,7 @@ env:
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
+DELETE: "/path/to/file"  # 确保 DELETE 变量已设置
 
 jobs:
   build:
