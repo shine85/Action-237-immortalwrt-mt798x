@@ -1,6 +1,9 @@
 #!/bin/bash
 # Diy_xinxi.sh - Custom compilation information script
 
+# Use GITHUB_WORKSPACE if BUILD_PATH is not set
+BUILD_PATH="${BUILD_PATH:-$GITHUB_WORKSPACE/scripts}"
+
 # Define output file
 BUILD_INFO_FILE="${BUILD_PATH}/build_info.txt"
 
