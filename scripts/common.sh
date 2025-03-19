@@ -1,10 +1,9 @@
 #!/bin/bash
-# common.sh - 通用脚本
-# 作者: 当贝AI助手
-# 日期: 2025-03-19
+# common.sh - General utility script
+# Purpose: Load Diy_xinxi.sh from the scripts directory
 
-# 设置 BUILD_PATH 为脚本所在目录的父目录（仓库根目录下的 scripts）
-BUILD_PATH=$(dirname "$0")
+# Determine the directory of this script (scripts directory)
+BUILD_PATH="$(dirname "$0")"
 
-# 加载 Diy_xinxi.sh 脚本，使用相对路径
+# Source Diy_xinxi.sh from the same directory as common.sh
 source "${BUILD_PATH}/Diy_xinxi.sh"

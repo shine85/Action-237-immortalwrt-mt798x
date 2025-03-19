@@ -72,7 +72,7 @@ jobs:
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
-        sudo chown runner:runner /workdir  # 修复：使用 runner:runner 代替 $USER:$GROUPS
+        sudo chown $USER:$USER /workdir
 
     - name: 克隆源代码 / Clone source code
       working-directory: /workdir
