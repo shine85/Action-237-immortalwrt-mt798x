@@ -28,23 +28,28 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-    - name: Checkout
+    - name: 检出代码 / Checkout
       uses: actions/checkout@v4
 
-    - name: Set COMPILATION_INFORMATION
+    - name: 设置环境变量 / Set COMPILATION_INFORMATION
       run: |
         echo "COMPILATION_INFORMATION=${{ inputs.COMPILATION_INFORMATION }}" >> $GITHUB_ENV
 
-    - name: Debug scripts directory
+    - name: 调试脚本目录 / Debug Scripts Directory
       run: |
-        ls -l scripts/
-        if [ -f "scripts/common.sh" ]; then
+        ls -la $GITHUB_WORKSPACE/scripts/
+        if [ -f "$GITHUB_WORKSPACE/scripts/common.sh" ]; then
           echo "common.sh exists!"
         else
           echo "common.sh does not exist!"
         fi
 
-    - name: Initialization environment
+    - name: 设置脚本权限 / Set Script Permissions
+      run: |
+        chmod +x $GITHUB_WORKSPACE/scripts/common.sh
+        chmod +x $GITHUB_WORKSPACE/scripts/Diy_xinxi.sh
+
+    - name: 初始化环境 / Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
@@ -64,31 +69,31 @@ jobs:
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
 
-    - name: Clone source code
+    - name: 克隆源代码 / Clone source code
       working-directory: /workdir
       run: |
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    - name: Load custom feeds
+    - name: 加载自定义 feeds / Load custom feeds
       run: |
         [ -e "$FEEDS_CONF" ] && mv "$FEEDS_CONF" openwrt/feeds.conf.default
         chmod +x "$DIY_P1_SH"
         cd openwrt
         "$GITHUB_WORKSPACE/$DIY_P1_SH"
 
-    - name: Update feeds
+    - name: 更新 feeds / Update feeds
       run: |
         cd openwrt
         ./scripts/feeds update -a
 
-    - name: Install feeds
+    - name: 安装 feeds / Install feeds
       run: |
         cd openwrt
         ./scripts/feeds install -a
 
-    - name: Load custom configuration
+    - name: 加载自定义配置 / Load custom configuration
       run: |
         [ -e files ] && mv files openwrt/files
         [ -e "$CONFIG_FILE" ] && mv "$CONFIG_FILE" openwrt/.config
@@ -96,7 +101,7 @@ jobs:
         cd openwrt
         "$GITHUB_WORKSPACE/$DIY_P2_SH"
 
-    - name: Download package
+    - name: 下载软件包 / Download package
       id: package
       run: |
         cd openwrt
@@ -105,7 +110,7 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
-    - name: Compile the firmware
+    - name: 编译固件 / Compile the firmware
       id: compile
       run: |
         cd openwrt
@@ -125,20 +130,20 @@ jobs:
       if: env.COMPILATION_INFORMATION == 'true'
       run: |
         cd openwrt
-        source ${BUILD_PATH}/common.sh && Diy_xinxi.sh
+        source "$GITHUB_WORKSPACE/scripts/common.sh" && "$GITHUB_WORKSPACE/scripts/Diy_xinxi.sh"
 
-    - name: Check space usage
+    - name: 检查空间使用情况 / Check space usage
       if: always()
       run: df -hT
 
-    - name: Upload bin directory
+    - name: 上传 bin 目录 / Upload bin directory
       uses: actions/upload-artifact@v4
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
       with:
         name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: openwrt/bin
 
-    - name: Organize files
+    - name: 整理文件 / Organize files
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
@@ -147,14 +152,14 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
-    - name: Upload firmware directory
+    - name: 上传固件目录 / Upload firmware directory
       uses: actions/upload-artifact@v4
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
 
-    - name: Generate release tag
+    - name: 生成发布标签 / Generate release tag
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
@@ -163,7 +168,7 @@ jobs:
         [ -e "$RELEASE_TXT" ] && cat "$RELEASE_TXT" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
-    - name: Upload firmware to release
+    - name: 上传固件到发布 / Upload firmware to release
       uses: softprops/action-gh-release@v2
       if: steps.tag.outputs.status == 'success' && !cancelled()
       env:
@@ -173,13 +178,13 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
-    - name: Delete workflow runs
+    - name: 删除工作流运行 / Delete workflow runs
       uses: Mattraks/delete-workflow-runs@v2
       with:
         retain_days: 0
         keep_minimum_runs: 2
 
-    - name: Remove old Releases
+    - name: 删除旧发布 / Remove old Releases
       uses: dev-drprasad/delete-older-releases@v0.3.2
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
