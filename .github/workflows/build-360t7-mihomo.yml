@@ -22,7 +22,7 @@ env:
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
-  BUILD_PATH: scripts  # 设置脚本路径
+  BUILD_PATH: scripts
 
 jobs:
   build:
@@ -72,7 +72,7 @@ jobs:
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
-        sudo chown $USER:$GITHUB_ENV /workdir
+        sudo chown runner:runner /workdir  # 修复：使用 runner:runner 代替 $USER:$GROUPS
 
     - name: 克隆源代码 / Clone source code
       working-directory: /workdir
@@ -168,7 +168,7 @@ jobs:
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
-        echo "release_tag=immortalwrt-mt798x-$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
+        echo "RELEASE_TAG=immortalwrt-mt798x-$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
         touch release.txt
         [ -e "$RELEASE_TXT" ] && cat "$RELEASE_TXT" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
@@ -179,7 +179,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.tag.outputs.release_tag }}
+        tag_name: ${{ steps.tag.outputs.RELEASE_TAG }}
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
