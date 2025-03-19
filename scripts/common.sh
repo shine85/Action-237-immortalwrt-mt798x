@@ -1,8 +1,8 @@
-# common.sh - 通用脚本
+#!/bin/bash
+# scripts/common.sh - Common utility script
 
+# Set BUILD_PATH to the directory containing this script
+BUILD_PATH="$(dirname "$0")"
 
-# 设置变量
-BUILD_PATH=$(dirname "$0")
-
-# 加载 Diy_xinxi 脚本
-source "${BUILD_PATH}/Diy_xinxi"
+# Source Diy_xinxi.sh from the same directory
+source "$BUILD_PATH/Diy_xinxi.sh"
