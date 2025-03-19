@@ -35,6 +35,15 @@ jobs:
       run: |
         echo "COMPILATION_INFORMATION=${{ inputs.COMPILATION_INFORMATION }}" >> $GITHUB_ENV
 
+    - name: Debug scripts directory
+      run: |
+        ls -l scripts/
+        if [ -f "scripts/common.sh" ]; then
+          echo "common.sh exists!"
+        else
+          echo "common.sh does not exist!"
+        fi
+
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -116,7 +125,7 @@ jobs:
       if: env.COMPILATION_INFORMATION == 'true'
       run: |
         cd openwrt
-        source ${BUILD_PATH}/common.sh && Diy_xinxi
+        source ${BUILD_PATH}/common.sh && Diy_xinxi.sh
 
     - name: Check space usage
       if: always()
