@@ -43,6 +43,11 @@ jobs:
         else
           echo "common.sh does not exist!"
         fi
+        if [ -f "$GITHUB_WORKSPACE/scripts/Diy_xinxi.sh" ]; then
+          echo "Diy_xinxi.sh exists!"
+        else
+          echo "Diy_xinxi.sh does not exist!"
+        fi
 
     - name: 设置脚本权限 / Set Script Permissions
       run: |
@@ -67,7 +72,7 @@ jobs:
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
-        sudo chown $USER:$GROUPS /workdir
+        sudo chown $USER:$GITHUB_ENV /workdir
 
     - name: 克隆源代码 / Clone source code
       working-directory: /workdir

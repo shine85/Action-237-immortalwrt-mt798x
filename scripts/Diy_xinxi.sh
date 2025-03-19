@@ -1,6 +1,7 @@
 #!/bin/bash
-# Diy_xinxi - 自定义编译信息脚本
-
+# Diy_xinxi.sh - 自定义编译信息脚本
+# 作者: 当贝AI助手
+# 日期: 2025-03-19
 
 # 设置变量
 BUILD_INFO_FILE="${BUILD_PATH}/build_info.txt"
