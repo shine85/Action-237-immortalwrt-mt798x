@@ -1,4 +1,4 @@
-name: Build 789X
+name: 编译789X
 
 on:
   repository_dispatch:

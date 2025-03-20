@@ -1,2 +1,3 @@
 237大佬源码编译路由器固件。
-immortalwrt
+immortalwrt编译X86_64固件
+目前是编译的旁路由模

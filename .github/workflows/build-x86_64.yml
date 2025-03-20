@@ -1,4 +1,4 @@
-name: Build X86_64
+name: 编译X86_64
 
 on:
   repository_dispatch:
