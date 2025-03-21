@@ -1,2 +1,3 @@
 237大佬immortalwrt源码编译编译固件。
 immortalwrt（闭源MTK驱动）
+默认网关：192.168.150.1
