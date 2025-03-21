@@ -105,16 +105,6 @@ jobs:
         chmod +x "$DIY_P2_SH"
         cd openwrt
         "$GITHUB_WORKSPACE/$DIY_P2_SH"
-    
-     - name: SSH
-        if: env.SSH == 'true'
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
-          port: ${{ secrets.PORT }}
-          script: whoami
 
     - name: 下载软件包 / Download package
       id: package
