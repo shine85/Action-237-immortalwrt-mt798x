@@ -126,7 +126,311 @@ jobs:
 
     - name: 更新 feeds / Update feeds
       run: cd ImmortalWrt && ./scripts/feeds update -a
+if [[ "${OpenClash_branch}" == "1" ]]; then
+  gitsvn https://github.com/vernesong/OpenClash/tree/dev ${HOME_PATH}/package/OpenClash
+else
+  gitsvn https://github.com/vernesong/OpenClash/tree/master ${HOME_PATH}/package/OpenClash
+fi
 
+# 正在执行插件语言修改
+if [[ -f "${LUCI_BANBEN}" ]]; then
+  cp -Rf ${HOME_PATH}/build/common/language/zh_Hans.sh ${HOME_PATH}/zh_Hans.sh
+  /bin/bash zh_Hans.sh && rm -rf zh_Hans.sh
+else
+  cp -Rf ${HOME_PATH}/build/common/language/zh-cn.sh ${HOME_PATH}/zh-cn.sh
+  /bin/bash zh-cn.sh && rm -rf zh-cn.sh
+fi
+./scripts/feeds install -a > /dev/null 2>&1
+# 使用自定义配置文件
+[[ -f ${BUILD_PATH}/$CONFIG_FILE ]] && mv ${BUILD_PATH}/$CONFIG_FILE .config
+}
+
+
+function Diy_Publicarea() {
+cd ${HOME_PATH}
+# Diy_zdypartsh的延伸
+rm -rf ${HOME_PATH}/CHONGTU && touch ${HOME_PATH}/CHONGTU
+lan="/set network.\$1.netmask/a"
+ipadd="$(grep "ipaddr:-" "${GENE_PATH}" |grep -v 'addr_offset' |grep -Eo "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")"
+netmas="$(grep "netmask:-" "${GENE_PATH}" |grep -Eo "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")"
+opname="$(grep "hostname=" "${GENE_PATH}" |grep -v '\$hostname' |cut -d "'" -f2)"
+if [[ -n "$(grep "set network.\${1}6.device" "${GENE_PATH}")" ]]; then
+  ifnamee="uci set network.ipv6.device='@lan'"
+  set_add="uci add_list firewall.@zone[0].network='ipv6'"
+else
+  ifnamee="uci set network.ipv6.ifname='@lan'"
+  set_add="uci set firewall.@zone[0].network='lan ipv6'"
+fi
+
+if [[ "${SOURCE_CODE}" == "OFFICIAL" ]] && [[ "${REPO_BRANCH}" == "openwrt-19.07" ]]; then
+  devicee="uci set network.ipv6.device='@lan'"
+fi
+
+# AdGuardHome内核
+if [[ "${AdGuardHome_Core}" == "1" ]]; then
+  echo "AdGuardHome_Core=1" >> ${GITHUB_ENV}
+else
+  [[ -f "${HOME_PATH}/files/usr/bin/AdGuardHome" ]] && rm -rf ${HOME_PATH}/files/usr/bin/AdGuardHome
+  echo "AdGuardHome_Core=0" >> ${GITHUB_ENV}
+fi
+
+if [[ "${Enable_IPV6_function}" == "1" ]]; then
+  echo "固件加入IPV6功能"
+  export Create_Ipv6_Lan="0"
+  export Enable_IPV4_function="0"
+  echo "Create_Ipv6_Lan=0" >> ${GITHUB_ENV}
+  echo "Enable_IPV4_function=0" >> ${GITHUB_ENV}
+  echo "Enable_IPV6_function=1" >> ${GITHUB_ENV}
+  echo "
+    uci set network.lan.ip6assign='64'
+    uci commit network
+    uci set dhcp.lan.ra='server'
+    uci set dhcp.lan.dhcpv6='server'
+    uci set dhcp.lan.ra_management='1'
+    uci set dhcp.lan.ra_default='1'
+    uci set dhcp.@dnsmasq[0].localservice=0
+    uci set dhcp.@dnsmasq[0].nonwildcard=0
+    uci set dhcp.@dnsmasq[0].filter_aaaa='0'
+    uci commit dhcp
+  " >> "${DEFAULT_PATH}"
+fi
+
+if [[ "${Create_Ipv6_Lan}" == "1" ]]; then
+  echo "爱快+OP双系统时,爱快接管IPV6,在OP创建IPV6的lan口接收IPV6信息"
+  export Enable_IPV4_function="0"
+  echo "Create_Ipv6_Lan=1" >> ${GITHUB_ENV}
+  echo "Enable_IPV4_function=0" >> ${GITHUB_ENV}
+  echo "Enable_IPV6_function=0" >> ${GITHUB_ENV}
+  echo "
+    uci delete network.lan.ip6assign
+    uci set network.lan.delegate='0'
+    uci commit network
+    uci delete dhcp.lan.ra
+    uci delete dhcp.lan.ra_management
+    uci delete dhcp.lan.ra_default
+    uci delete dhcp.lan.dhcpv6
+    uci delete dhcp.lan.ndp
+    uci set dhcp.@dnsmasq[0].filter_aaaa='0'
+    uci commit dhcp
+    uci set network.ipv6=interface
+    uci set network.ipv6.proto='dhcpv6'
+    ${devicee}
+    ${ifnamee}
+    uci set network.ipv6.reqaddress='try'
+    uci set network.ipv6.reqprefix='auto'
+    uci commit network
+    ${set_add}
+    uci commit firewall
+  " >> "${DEFAULT_PATH}"
+fi
+
+if [[ "${Enable_IPV4_function}" == "1" ]]; then
+  echo "Enable_IPV4_function=1" >> ${GITHUB_ENV}
+  echo "Enable_IPV6_function=0" >> ${GITHUB_ENV}
+  echo "Create_Ipv6_Lan=0" >> ${GITHUB_ENV}
+  echo "固件加入IPV4功能"
+  echo "
+    uci delete network.globals.ula_prefix
+    uci delete network.lan.ip6assign
+    uci delete network.wan6
+    uci set network.lan.delegate='0' 
+    uci commit network
+    uci delete dhcp.lan.ra
+    uci delete dhcp.lan.ra_management
+    uci delete dhcp.lan.ra_default
+    uci delete dhcp.lan.dhcpv6
+    uci delete dhcp.lan.ndp
+    uci set dhcp.@dnsmasq[0].filter_aaaa='1'
+    uci commit dhcp
+  " >> "${DEFAULT_PATH}"
+fi
+
+if [[ "${Default_theme}" == "0" ]] || [[ -z "${Default_theme}" ]]; then
+  echo "Default_theme=0" >> ${GITHUB_ENV}
+  echo "不进行,默认主题设置"
+elif [[ -n "${Default_theme}" ]]; then
+  echo "Default_theme=${Default_theme}" >> ${GITHUB_ENV}
+fi
+
+if [[ "${Customized_Information}" == "0" ]] || [[ -z "${Customized_Information}" ]]; then
+  echo "不进行,个性签名设置"
+elif [[ -n "${Customized_Information}" ]]; then
+  sed -i "s/Customized_Information/${Customized_Information}/g" "${DEFAULT_PATH}"
+  echo "个性签名[${Customized_Information}]增加完成"
+fi
+
+if [[ -n "${Kernel_partition_size}" ]] && [[ "${Kernel_partition_size}" != "0" ]]; then
+  echo "CONFIG_TARGET_KERNEL_PARTSIZE=${Kernel_partition_size}" >> ${HOME_PATH}/.config
+  echo "内核分区设置完成，大小为：${Kernel_partition_size}MB"
+else
+  echo "不进行,内核分区大小设置"
+fi
+
+if [[ -n "${Rootfs_partition_size}" ]] && [[ "${Rootfs_partition_size}" != "0" ]]; then
+  echo "CONFIG_TARGET_ROOTFS_PARTSIZE=${Rootfs_partition_size}" >> ${HOME_PATH}/.config
+  echo "系统分区设置完成，大小为：${Rootfs_partition_size}MB"
+else
+  echo "不进行,系统分区大小设置"
+fi
+
+if [[ "${Delete_unnecessary_items}" == "1" ]]; then
+   echo "Delete_unnecessary_items=${Delete_unnecessary_items}" >> ${GITHUB_ENV}
+fi
+
+if [[ "${Replace_Kernel}" == "0" ]] || [[ -z "${Replace_Kernel}" ]]; then
+  echo "Replace_Kernel=0" >> ${GITHUB_ENV}
+  echo "使用默认内核"
+elif [[ -n "${Replace_Kernel}" ]]; then
+  Replace_nel="$(echo ${Replace_Kernel} |grep -Eo "[0-9]+\.[0-9]+")"
+  if [[ -n "${Replace_nel}" ]]; then
+    echo "Replace_Kernel=${Replace_Kernel}" >> ${GITHUB_ENV}
+    echo "修改源码默认内核为：${Replace_Kernel}"
+  else
+    echo "Replace_Kernel=0" >> ${GITHUB_ENV}
+    echo "填写的内核格式错误,使用源码默认内核编译"
+  fi
+fi
+
+if [[ "${Ipv4_ipaddr}" == "0" ]] || [[ -z "${Ipv4_ipaddr}" ]]; then
+  echo "使用源码默认后台IP"
+elif [[ -n "${Ipv4_ipaddr}" ]]; then
+  Kernel_Pat="$(echo ${Ipv4_ipaddr} |grep -Eo "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")"
+  ipadd_Pat="$(echo ${ipadd} |grep -Eo "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")"
+  if [[ -n "${Kernel_Pat}" ]] && [[ -n "${ipadd_Pat}" ]]; then
+     sed -i "s/${ipadd}/${Ipv4_ipaddr}/g" "${GENE_PATH}"
+     echo "openwrt后台IP[${Ipv4_ipaddr}]修改完成"
+   else
+     echo "TIME r \"因IP获取有错误，后台IP更换不成功，请检查IP是否填写正确，如果填写正确，那就是获取不了源码内的IP了\"" >> ${HOME_PATH}/CHONGTU
+   fi
+fi
+
+if [[ "${Netmask_netm}" == "0" ]] || [[ -z "${Netmask_netm}" ]]; then
+  echo "使用默认子网掩码"
+elif [[ -n "${Netmask_netm}" ]]; then
+  Kernel_netm="$(echo ${Netmask_netm} |grep -Eo "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")"
+  ipadd_mas="$(echo ${netmas} |grep -Eo "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")"
+  if [[ -n "${Kernel_netm}" ]] && [[ -n "${ipadd_mas}" ]]; then
+     sed -i "s/${netmas}/${Netmask_netm}/g" "${GENE_PATH}"
+     echo "子网掩码[${Netmask_netm}]修改完成"
+   else
+     echo "TIME r \"因子网掩码获取有错误，子网掩码设置失败，请检查IP是否填写正确，如果填写正确，那就是获取不了源码内的IP了\"" >> ${HOME_PATH}/CHONGTU
+  fi
+fi
+
+if [[ "${Op_name}" == "0" ]] || [[ -z "${Op_name}" ]]; then
+  echo "使用源码默认主机名"
+elif [[ -n "${Op_name}" ]] && [[ -n "${opname}" ]]; then
+  sed -i "s/${opname}/${Op_name}/g" "${GENE_PATH}"
+  echo "主机名[${Op_name}]修改完成"
+fi
+
+if [[ "${Gateway_Settings}" == "0" ]] || [[ -z "${Gateway_Settings}" ]]; then
+  echo "不进行,网关设置"
+elif [[ -n "${Gateway_Settings}" ]]; then
+  Router_gat="$(echo ${Gateway_Settings} |grep -Eo "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")"
+  if [[ -n "${Router_gat}" ]]; then
+    sed -i "$lan\set network.lan.gateway='${Gateway_Settings}'" "${GENE_PATH}"
+    echo "网关[${Gateway_Settings}]修改完成"
+  else
+    echo "TIME r \"因子网关IP获取有错误，网关IP设置失败，请检查IP是否填写正确，如果填写正确，那就是获取不了源码内的IP了\"" >> ${HOME_PATH}/CHONGTU
+  fi
+fi
+
+if [[ "${DNS_Settings}" == "0" ]] || [[ -z "${DNS_Settings}" ]]; then
+  echo "不进行,DNS设置"
+elif [[ -n "${DNS_Settings}" ]]; then
+  ipa_dns="$(echo ${DNS_Settings} |grep -Eo "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")"
+  if [[ -n "${ipa_dns}" ]]; then
+     sed -i "$lan\set network.lan.dns='${DNS_Settings}'" "${GENE_PATH}"
+     echo "DNS[${DNS_Settings}]设置完成"
+  else
+    echo "TIME r \"因DNS获取有错误，DNS设置失败，请检查DNS是否填写正确\"" >> ${HOME_PATH}/CHONGTU
+  fi
+fi
+
+if [[ "${Broadcast_Ipv4}" == "0" ]] || [[ -z "${Broadcast_Ipv4}" ]]; then
+  echo "不进行,广播IP设置"
+elif [[ -n "${Broadcast_Ipv4}" ]]; then
+  IPv4_Bro="$(echo ${Broadcast_Ipv4} |grep -Eo "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")"
+  if [[ -n "${IPv4_Bro}" ]]; then
+    sed -i "$lan\set network.lan.broadcast='${Broadcast_Ipv4}'" "${GENE_PATH}"
+    echo "广播IP[${Broadcast_Ipv4}]设置完成"
+  else
+    echo "TIME r \"因IPv4 广播IP获取有错误，IPv4广播IP设置失败，请检查IPv4广播IP是否填写正确\"" >> ${HOME_PATH}/CHONGTU
+  fi
+fi
+
+if [[ "${Disable_DHCP}" == "1" ]]; then
+   sed -i "$lan\set dhcp.lan.ignore='1'" "${GENE_PATH}"
+   echo "关闭DHCP设置完成"
+fi
+
+if [[ "${Disable_Bridge}" == "1" ]]; then
+   sed -i "$lan\delete network.lan.type" "${GENE_PATH}"
+   echo "去掉桥接设置完成"
+fi
+
+if [[ "${Ttyd_account_free_login}" == "1" ]]; then
+   sed -i "$lan\set ttyd.@ttyd[0].command='/bin/login -f root'" "${GENE_PATH}"
+   echo "TTYD免账户登录完成"
+fi
+
+if [[ "${Password_free_login}" == "1" ]]; then
+   sed -i '/CYXluq4wUazHjmCDBCqXF/d' "${ZZZ_PATH}"
+   echo "固件免密登录设置完成"
+fi
+
+if [[ "${Disable_53_redirection}" == "1" ]]; then
+   sed -i '/to-ports 53/d' "${ZZZ_PATH}"
+   echo "删除DNS重定向53端口完成"
+fi
+
+if [[ "${Cancel_running}" == "1" ]]; then
+   echo "sed -i '/coremark/d' /etc/crontabs/root" >> "${DEFAULT_PATH}"
+   echo "删除每天跑分任务完成"
+fi
+
+if [[ "${Disable_NaiveProxy}" == "1" ]]; then
+  echo "Disable_NaiveProxy=1" >> ${GITHUB_ENV}
+fi
+
+if [[ "${Disable_autosamba}" == "1" ]]; then
+  echo "Disable_autosamba=1" >> ${GITHUB_ENV}
+fi
+
+# 晶晨CPU机型自定义机型,内核,分区
+echo "amlogic_model=${amlogic_model}" >> ${GITHUB_ENV}
+echo "amlogic_kernel=${amlogic_kernel}" >> ${GITHUB_ENV}
+echo "auto_kernel=${auto_kernel}" >> ${GITHUB_ENV}
+echo "rootfs_size=${rootfs_size}" >> ${GITHUB_ENV}
+echo "kernel_repo=ophub/kernel" >> ${GITHUB_ENV}
+echo "kernel_usage=${kernel_usage}" >> ${GITHUB_ENV}
+[[ -f "${GITHUB_ENV}" ]] && source ${GITHUB_ENV}
+
+
+if [[ "${Mandatory_theme}" == "0" ]] || [[ -z "${Mandatory_theme}" ]]; then
+  echo "不进行,替换bootstrap主题设置"
+elif [[ -n "${Mandatory_theme}" ]]; then
+  zt_theme="luci-theme-${Mandatory_theme}"
+  if [[ `find . -type d -name "${zt_theme}" |grep -v 'dir' |grep -c "${zt_theme}"` -ge "1" ]]; then
+    if [[ -f "${HOME_PATH}/extra/luci/collections/luci/Makefile" ]]; then
+      zt2_theme="$(grep -Eo "luci-theme.*" "${HOME_PATH}/extra/luci/collections/luci/Makefile" |cut -d ' ' -f1)"
+      [[ -n "${zt2_theme}" ]] && sed -i "s?${zt2_theme}?${zt_theme}?g" "${HOME_PATH}/extra/luci/collections/luci/Makefile"
+    fi
+    if [[ -f "${HOME_PATH}/feeds/luci/collections/luci/Makefile" ]]; then
+      zt2_theme="$(grep -Eo "luci-theme.*" "${HOME_PATH}/feeds/luci/collections/luci/Makefile" |cut -d ' ' -f1)"
+      [[ -n "${zt2_theme}" ]] && sed -i "s?${zt2_theme}?${zt_theme}?g" "${HOME_PATH}/feeds/luci/collections/luci/Makefile"
+    fi
+    if [[ -f "${HOME_PATH}/feeds/luci/collections/luci-light/Makefile" ]]; then
+      zt2_theme="$(grep -Eo "luci-theme.*" "${HOME_PATH}/feeds/luci/collections/luci-light/Makefile" |cut -d ' ' -f1)"
+      [[ -n "${zt2_theme}" ]] && sed -i "s?${zt2_theme}?${zt_theme}?g" "${HOME_PATH}/feeds/luci/collections/luci-light/Makefile"
+    fi
+    echo "替换必须主题完成,您现在的必选主题为：${zt_theme}"
+  else
+    echo "TIME r \"源码内没发现${zt_theme}此主题存在,不进行替换bootstrap主题操作\"" >> ${HOME_PATH}/CHONGTU
+  fi
+fi
+}
     - name: 安装 feeds / Install feeds
       run: cd ImmortalWrt && ./scripts/feeds install -a
 
