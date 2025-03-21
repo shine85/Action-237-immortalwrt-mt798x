@@ -9,7 +9,8 @@ on:
         required: false
         default: 'true'
         type: boolean
-        description: 'Using cache to speed up OpenWrt compilation.'
+      USE_CACHE:
+        description: '使用缓存加速 OpenWrt 编译'
         required: true
         default: 'true'
         type: choice
