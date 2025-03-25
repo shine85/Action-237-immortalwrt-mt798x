@@ -8,7 +8,7 @@ set -x
 git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/Nikki
 
 # 后台IP设置
-Ipv4_ipaddr="192.168.250.2" # 修改openwrt后台地址(填0为关闭)
+Ipv4_ipaddr="192.168.150.2" # 修改openwrt后台地址(填0为关闭)
 Netmask_netm="255.255.255.0" # IPv4 子网掩码（默认：255.255.255.0）(填0为不作修改)
 Op_name="Immortalwrt-༄ 目目+🔸࿐" # 修改主机名称为OpenWrt-123(填0为不作修改)
 
@@ -51,8 +51,8 @@ if [ "$Default_theme" != "0" ]; then
 fi
 
 # 旁路由选项
-Gateway_Settings="192.168.250.1" # IPv4 网关(填0为不作修改)
-DNS_Settings="192.168.250.247 223.5.5.5" # DNS设置(填0为不作修改)
+Gateway_Settings="192.168.150.1" # IPv4 网关(填0为不作修改)
+DNS_Settings="192.168.151.2 223.5.5.5" # DNS设置(填0为不作修改)
 Broadcast_Ipv4="192.168.150.255" # IPv4 广播(填0为不作修改)
 Disable_DHCP="1" # 关闭DHCP功能(1为启用,0为不作修改)
 Disable_Bridge="1" # 去掉桥接模式(1为启用,0为不作修改)
