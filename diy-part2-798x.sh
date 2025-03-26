@@ -175,7 +175,7 @@ kernel_usage="stable"
 # 修改插件名字（保持原有逻辑）
 for file in $(egrep "终端" -rl ./); do
     if [ -f "$file" ]; then
-        sed -i 's/"终端"/"TTYD"/g' "$file"
+        sed -i 's/"终端"/"终端"/g' "$file"
     else
         echo "Warning: $file not found"
     fi
