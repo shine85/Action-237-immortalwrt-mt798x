@@ -202,6 +202,10 @@ jobs:
         echo "RELEASE_TAG=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
         touch release.txt
         echo "编译时间：$(date +'%Y年%m月%d日 %H点%M分')" >> release.txt
+        # echo "默认网关：192.168.50.1" >> release.txt
+        # echo "默认插件："$(cat extra.config|sed 's/#.*//g;s/CONFIG_PACKAGE_.*=n//g'|sed 's/CONFIG_PACKAGE_\(.*\)=y/\1/g')|sed 's/ /、/g' >> release.txt
+        echo "status=success" >> $GITHUB_OUTPUT
+         mv ImmortalWrt/.config ImmortalWrt/build.config
 
     - name: 上传固件到发布 / Upload firmware to release
       uses: softprops/action-gh-release@v2
