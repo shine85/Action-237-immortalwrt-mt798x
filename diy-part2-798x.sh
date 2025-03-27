@@ -58,7 +58,6 @@ ls -R files/
 # 提示用户在编译后检查
 echo "After compilation, please check if 'files/etc/uci-defaults/99-custom' and 'files/etc/banner' are included in the firmware."
 
-
 # 内核和系统分区大小(不是每个机型都可用)
 Kernel_partition_size="0" # 内核分区大小(单位MB,填0为不作修改)
 Rootfs_partition_size="0" # 系统分区大小(单位MB,填0为不作修改)
