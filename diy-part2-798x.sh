@@ -80,7 +80,6 @@ EOF
 fi
 
 if [ "$Op_name" != "0" ]; then
-    sed -i "s/CONFIG_HOSTNAME=.*/CONFIG_HOSTNAME=\"$Op_name\"/" .config
     cat << EOF >> files/etc/uci-defaults/99-custom
 uci set system.@system<source_id data="0" title="diy-part2-798x.sh" />.hostname='$Op_name'
 uci commit system
