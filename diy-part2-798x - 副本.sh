@@ -6,77 +6,176 @@ set -x
 # 自行拉取插件之前请SSH连接进入固件配置里面确认过没有你要的插件再单独拉取你需要的插件
 # 不要一下就拉取别人一个插件包N多插件的，多了没用，增加编译错误，自己需要的才好
 git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/Nikki
-
+git clone https://github.com/281677160/luci-app-autoupdate package/autoupdate
 # 后台IP设置
-export Ipv4_ipaddr="192.168.150.2" # 修改openwrt后台地址(填0为关闭)
-export Netmask_netm="255.255.255.0" # IPv4 子网掩码（默认：255.255.255.0）(填0为不作修改)
-export Op_name="" # 修改主机名称为OpenWrt-123(填0为不作修改)
+Ipv4_ipaddr="192.168.150.2" # 修改openwrt后台地址(填0为关闭)
+Netmask_netm="255.255.255.0" # IPv4 子网掩码（默认：255.255.255.0）(填0为不作修改)
+Op_name="Immortalwrt-༄ 目目+🔸࿐" # 修改主机名称为OpenWrt-123(填0为不作修改)
+
+# 应用后台IP和主机名称设置到固件
+if [ "$Ipv4_ipaddr" != "0" ]; then
+    mkdir -p files/etc/uci-defaults
+    cat << EOF > files/etc/uci-defaults/99-custom
+uci set network.lan.ipaddr='$Ipv4_ipaddr'
+uci set network.lan.netmask='$Netmask_netm'
+uci commit network
+EOF
+fi
+if [ "$Op_name" != "0" ]; then
+    sed -i "s/CONFIG_HOSTNAME=.*/CONFIG_HOSTNAME=\"$Op_name\"/" .config
+fi
 
 # 内核和系统分区大小(不是每个机型都可用)
-export Kernel_partition_size="0" # 内核分区大小,每个机型默认值不一样 (填写您想要的数值,默认一般16,数值以MB计算，填0为不作修改),如果你不懂就填0
-export Rootfs_partition_size="0" # 系统分区大小,每个机型默认值不一样 (填写您想要的数值,默认一般300左右,数值以MB计算，填0为不作修改),如果你不懂就填0
+Kernel_partition_size="0" # 内核分区大小(单位MB,填0为不作修改)
+Rootfs_partition_size="0" # 系统分区大小(单位MB,填0为不作修改)
+
+# 应用分区大小设置（仅适用于支持的机型）
+if [ "$Kernel_partition_size" != "0" ]; then
+    sed -i "s/CONFIG_TARGET_KERNEL_PARTSIZE=.*/CONFIG_TARGET_KERNEL_PARTSIZE=$Kernel_partition_size/" .config
+fi
+if [ "$Rootfs_partition_size" != "0" ]; then
+    sed -i "s/CONFIG_TARGET_ROOTFS_PARTSIZE=.*/CONFIG_TARGET_ROOTFS_PARTSIZE=$Rootfs_partition_size/" .config
+fi
 
 # 默认主题设置
-export Mandatory_theme="argon" # 将bootstrap替换您需要的主题为必选主题(可自行更改您要的,源码要带此主题就行,填写名称也要写对) (填写主题名称,填0为不作修改)
-export Default_theme="argon" # 多主题时,选择某主题为默认第一主题 (填写主题名称,填0为不作修改)
+Mandatory_theme="argon" # 必选主题(填0为不作修改)
+Default_theme="argon" # 默认第一主题(填0为不作修改)
+
+# 应用主题设置
+if [ "$Mandatory_theme" != "0" ]; then
+    sed -i "s/CONFIG_PACKAGE_luci-theme-bootstrap=y/# CONFIG_PACKAGE_luci-theme-bootstrap is not set/" .config
+    sed -i "s/# CONFIG_PACKAGE_luci-theme-$Mandatory_theme is not set/CONFIG_PACKAGE_luci-theme-$Mandatory_theme=y/" .config
+fi
+if [ "$Default_theme" != "0" ]; then
+    sed -i "s/CONFIG_DEFAULT_THEME=.*/CONFIG_DEFAULT_THEME=\"$Default_theme\"/" .config
+fi
 
 # 旁路由选项
-export Gateway_Settings="192.168.150.1" # 旁路由设置 IPv4 网关(填入您的网关IP为启用)(填0为不作修改)
-export DNS_Settings="192.168.151.2 223.5.5.5" # 旁路由设置 DNS(填入DNS，多个DNS要用空格分开)(填0为不作修改)
-export Broadcast_Ipv4="192.168.150.255" # 设置 IPv4 广播(填入您的IP为启用)(填0为不作修改)
-export Disable_DHCP="1" # 旁路由关闭DHCP功能(1为启用命令,填0为不作修改)
-export Disable_Bridge="1" # 旁路由去掉桥接模式(1为启用命令,填0为不作修改)
-export Create_Ipv6_Lan="0" # 爱快+OP双系统时,爱快接管IPV6,在OP创建IPV6的lan口接收IPV6信息(1为启用命令,填0为不作修改)
+Gateway_Settings="192.168.150.1" # IPv4 网关(填0为不作修改)
+DNS_Settings="192.168.151.2 223.5.5.5" # DNS设置(填0为不作修改)
+Broadcast_Ipv4="192.168.150.255" # IPv4 广播(填0为不作修改)
+Disable_DHCP="1" # 关闭DHCP功能(1为启用,0为不作修改)
+Disable_Bridge="1" # 去掉桥接模式(1为启用,0为不作修改)
+Create_Ipv6_Lan="0" # 创建IPV6 lan口(1为启用,0为不作修改)
+
+# 应用旁路由设置
+if [ "$Gateway_Settings" != "0" ] || [ "$DNS_Settings" != "0" ] || [ "$Broadcast_Ipv4" != "0" ]; then
+    mkdir -p files/etc/uci-defaults
+    cat << EOF > files/etc/uci-defaults/98-bypass
+uci set network.lan.proto='static'
+[ "$Gateway_Settings" != "0" ] && uci set network.lan.gateway='$Gateway_Settings'
+[ "$DNS_Settings" != "0" ] && uci set network.lan.dns='$DNS_Settings'
+[ "$Broadcast_Ipv4" != "0" ] && uci set network.lan.broadcast='$Broadcast_Ipv4'
+uci commit network
+EOF
+fi
+if [ "$Disable_DHCP" == "1" ]; then
+    sed -i "s/CONFIG_PACKAGE_dhcp=y/# CONFIG_PACKAGE_dhcp is not set/" .config
+    mkdir -p files/etc/uci-defaults
+    cat << EOF >> files/etc/uci-defaults/99-custom
+uci set dhcp.lan.ignore='1'
+uci commit dhcp
+EOF
+fi
+if [ "$Disable_Bridge" == "1" ]; then
+    sed -i "s/CONFIG_BRIDGE=y/# CONFIG_BRIDGE is not set/" .config
+fi
+if [ "$Create_Ipv6_Lan" == "1" ]; then
+    sed -i "s/# CONFIG_PACKAGE_ipv6helper is not set/CONFIG_PACKAGE_ipv6helper=y/" .config
+fi
 
 # IPV6、IPV4 选择
-export Enable_IPV6_function="0" # 编译IPV6固件(1为启用命令,填0为不作修改)(如果跟Create_Ipv6_Lan一起启用命令的话,Create_Ipv6_Lan命令会自动关闭)
-export Enable_IPV4_function="1" # 编译IPV4固件(1为启用命令,填0为不作修改)(如果跟Enable_IPV6_function一起启用命令的话,此命令会自动关闭)
+Enable_IPV6_function="0" # 启用IPV6(1为启用,0为不作修改)
+Enable_IPV4_function="1" # 启用IPV4(1为启用,0为不作修改)
 
-# 替换passwall的源码(默认luci分支)
-export PassWall_luci_branch="0" # passwall的源码分别有【luci分支】和【luci-smartdns-new-version分支】(填0为使用luci分支,填1为使用luci-smartdns-new-version分支)
+# 应用IPV6/IPV4设置
+if [ "$Enable_IPV6_function" == "1" ]; then
+    sed -i "s/# CONFIG_PACKAGE_ipv6helper is not set/CONFIG_PACKAGE_ipv6helper=y/" .config
+    [ "$Create_Ipv6_Lan" == "1" ] && Create_Ipv6_Lan="0" # 如果启用IPV6，则禁用Create_Ipv6_Lan
+fi
+if [ "$Enable_IPV4_function" == "1" ]; then
+    sed -i "s/# CONFIG_PACKAGE_ipv4helper is not set/CONFIG_PACKAGE_ipv4helper=y/" .config
+fi
 
-# 替换OpenClash的源码(默认master分支)
-export OpenClash_branch="0" # OpenClash的源码分别有【master分支】和【dev分支】(填0为使用master分支,填1为使用dev分支)
-export OpenClash_Core="1" # 增加OpenClash时,把核心下载好,(填1为下载【dev单核】,填2为下载【dev/meta/premium三核】,填0为不需要核心)
+# 替换passwall的源码(暂不实现具体替换逻辑，仅定义变量)
+PassWall_luci_branch="0" # 0为luci分支,1为luci-smartdns-new-version分支
 
-# 个性签名,默认增加年月日[$(TZ=UTC-8 date "+%Y.%m.%d")]
-# export Customized_Information="$(TZ=UTC-8 date "+%Y.%m.%d")" # 个性签名,你想写啥就写啥，(填0为不作修改)
-export Customized_Information="༄ 目目+🔸࿐ $(TZ=UTC-8 date "+%Y.%m.%d")"
+# 替换OpenClash的源码和核心
+OpenClash_branch="0" # 0为master分支,1为dev分支
+OpenClash_Core="1" # 1为dev单核,2为dev/meta/premium三核,0为不下载
+
+# 应用OpenClash设置（需手动确认源码是否支持）
+if [ "$OpenClash_Core" != "0" ]; then
+    sed -i "s/# CONFIG_PACKAGE_luci-app-openclash is not set/CONFIG_PACKAGE_luci-app-openclash=y/" .config
+fi
+
+# 个性签名
+Customized_Information="༄ 目目+🔸࿐ $(TZ=UTC-8 date "+%Y.%m.%d")"
+# 应用个性签名
+echo "$Customized_Information" > files/etc/banner
+
 # 更换固件内核
-export Replace_Kernel="0" # 更换内核版本,在对应源码的[target/linux/架构]查看patches-x.x,看看x.x有啥就有啥内核了(填入内核x.x版本号,填0为不作修改)
+Replace_Kernel="0" # 填入内核版本号(填0为不作修改)
+if [ "$Replace_Kernel" != "0" ]; then
+    sed -i "s/CONFIG_TARGET_KERNEL_VERSION=.*/CONFIG_TARGET_KERNEL_VERSION=\"$Replace_Kernel\"/" .config
+fi
 
-# 设置免密码登录(个别源码本身就没密码的)
-export Password_free_login="1" # 设置首次登录后台密码为空（进入openwrt后自行修改密码）(1为启用命令,填0为不作修改)
-
-# 增加AdGuardHome插件和核心
-# export AdGuardHome_Core="0" # 编译固件时自动增加AdGuardHome插件和AdGuardHome插件核心,需要注意的是一个核心20多MB的,小闪存机子搞不来(1为启用命令,填0为不作修改)
+# 设置免密码登录
+Password_free_login="1" # 1为启用,0为不作修改
+if [ "$Password_free_login" == "1" ]; then
+    mkdir -p files/etc/uci-defaults
+    cat << EOF >> files/etc/uci-defaults/99-custom
+uci set system.@system<source_id data="0" title="build-x86_64.yml" />.password=""
+uci commit system
+EOF
+fi
 
 # 禁用ssrplus和passwall的NaiveProxy
-export Disable_NaiveProxy="1" # 因个别源码的分支不支持编译NaiveProxy,不小心选择了就编译错误了,为减少错误,打开这个选项后,就算选择了NaiveProxy也会把NaiveProxy干掉不进行编译的(1为启用命令,填0为不作修改)
-
-# 开启NTFS格式盘挂载
-# export Automatic_Mount_Settings="0" # 编译时加入开启NTFS格式盘挂载的所需依赖(1为启用命令,填0为不作修改)
+Disable_NaiveProxy="1" # 1为禁用,0为不作修改
+if [ "$Disable_NaiveProxy" == "1" ]; then
+    sed -i "s/CONFIG_PACKAGE_naiveproxy=y/# CONFIG_PACKAGE_naiveproxy is not set/" .config
+fi
 
 # 去除网络共享(autosamba)
-export Disable_autosamba="0" # 去掉源码默认自选的luci-app-samba或luci-app-samba4(1为启用命令,填0为不作修改)
+Disable_autosamba="1" # 1为启用,0为不作修改
+if [ "$Disable_autosamba" == "1" ]; then
+    sed -i "s/CONFIG_PACKAGE_luci-app-samba=y/# CONFIG_PACKAGE_luci-app-samba is not set/" .config
+    sed -i "s/CONFIG_PACKAGE_luci-app-samba4=y/# CONFIG_PACKAGE_luci-app-samba4 is not set/" .config
+fi
 
-# 其他
-export Ttyd_account_free_login="0" # 设置ttyd免密登录(1为启用命令,填0为不作修改)
-export Delete_unnecessary_items="0" # 个别机型内一堆其他机型固件,删除其他机型的,只保留当前主机型固件(1为启用命令,填0为不作修改)
-export Disable_53_redirection="1" # 删除DNS强制重定向53端口防火墙规则(个别源码本身不带此功能)(1为启用命令,填0为不作修改)
-export Cancel_running="0" # 取消路由器每天跑分任务(个别源码本身不带此功能)(1为启用命令,填0为不作修改)
+# 其他设置
+Ttyd_account_free_login="0" # 设置ttyd免密登录(1为启用,0为不作修改)
+Delete_unnecessary_items="0" # 删除其他机型固件(1为启用,0为不作修改)
+Disable_53_redirection="1" # 删除DNS 53端口重定向(1为启用,0为不作修改)
+Cancel_running="0" # 取消跑分任务(1为启用,0为不作修改)
 
-# 晶晨CPU系列打包固件设置(不懂请看说明)
-export amlogic_model="s905d"
-export amlogic_kernel="6.1.y_6.12.y"
-export auto_kernel="true"
-export rootfs_size="2560"
-export kernel_usage="stable"
+if [ "$Ttyd_account_free_login" == "1" ]; then
+    mkdir -p files/etc/uci-defaults
+    cat << EOF >> files/etc/uci-defaults/99-custom
+uci set ttyd.@ttyd<source_id data="0" title="build-x86_64.yml" />.command='/bin/sh -l'
+uci commit ttyd
+EOF
+fi
+if [ "$Disable_53_redirection" == "1" ]; then
+    mkdir -p files/etc/uci-defaults
+    cat << EOF >> files/etc/uci-defaults/99-custom
+uci del firewall.@redirect<source_id data="0" title="build-x86_64.yml" />
+uci commit firewall
+EOF
+fi
 
-# 修改插件名字
+# 晶晨CPU系列打包固件设置（仅适用于特定机型）
+amlogic_model="s905d"
+amlogic_kernel="6.1.y_6.12.y"
+auto_kernel="true"
+rootfs_size="2560"
+kernel_usage="stable"
+# 晶晨设置通常由其他脚本处理，此处仅保留变量定义
+
+# 修改插件名字（保持原有逻辑）
 for file in $(egrep "终端" -rl ./); do
     if [ -f "$file" ]; then
-        sed -i 's/"终端"/"TTYD"/g' "$file"
+        sed -i 's/"终端"/"终端"/g' "$file"
     else
         echo "Warning: $file not found"
     fi
@@ -162,7 +261,7 @@ for file in $(egrep "带宽监控" -rl ./); do
     fi
 done
 
-# 整理固件包时候,删除您不想要的固件或者文件,让它不需要上传到Actions空间(根据编译机型变化,自行调整删除名称)
+# 整理固件包时候,删除不需要的文件
 CLEAR_PATH="/tmp/clear.txt"
 cat >"$CLEAR_PATH" <<-EOF
 packages
@@ -179,7 +278,7 @@ openwrt-x86-64-generic.manifest
 openwrt-x86-64-generic-squashfs-rootfs.img.gz
 EOF
 
-# 在线更新时，删除不想保留固件的某个文件，在EOF跟EOF之间加入删除代码，记住这里对应的是固件的文件路径，比如： rm -rf /etc/config/luci
+# 在线更新时，删除不想保留的文件
 DELETE=${DELETE:-"/tmp/delete.txt"}
 cat >>"$DELETE" <<-EOF
 EOF
