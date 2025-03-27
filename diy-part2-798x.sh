@@ -4,12 +4,60 @@ set -x
 # Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
 # DIY扩展二合一了,在此处可以增加插件
 git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/Nikki
-git clone https://github.com/281677160/luci-app-autoupdate package/autoupdate
+
+# 确保在 OpenWrt 源码根目录下运行
+if [ ! -f "Makefile" ] || [ ! -d "package" ]; then
+    echo "Error: Please run this script in the OpenWrt source root directory."
+    exit 1
+fi
+
+# 创建 files/ 目录
+mkdir -p files/etc/uci-defaults
+mkdir -p files/etc
+
+# 创建 UCI 默认脚本
+UCI_DEFAULTS_FILE="files/etc/uci-defaults/99-custom"
+> "$UCI_DEFAULTS_FILE"  # 创建空文件
 
 # 后台IP设置
-Ipv4_ipaddr="192.168.150.2" # 修改openwrt后台地址(填0为关闭)
-Netmask_netm="255.255.255.0" # IPv4 子网掩码(默认:255.255.255.0)(填0为不作修改)
-Op_name="Immortalwrt-༄ 目目+🔸࿐" # 修改主机名称为OpenWrt-123(填0为不作修改)
+Ipv4_ipaddr="192.168.150.2"
+Netmask_netm="255.255.255.0"
+Op_name="Immortalwrt-༄ 目目+🔸࿐"
+
+# 应用后台IP和主机名称设置
+if [ "$Ipv4_ipaddr" != "0" ]; then
+    cat << EOF >> "$UCI_DEFAULTS_FILE"
+uci set network.lan.ipaddr='$Ipv4_ipaddr'
+uci set network.lan.netmask='$Netmask_netm'
+uci commit network
+EOF
+fi
+
+if [ "$Op_name" != "0" ]; then
+    cat << EOF >> "$UCI_DEFAULTS_FILE"
+uci set system.@system<source_id data="0" title="diy-part2-798x.sh" />.hostname='$Op_name'
+uci commit system
+EOF
+fi
+
+# 个性签名
+Customized_Information="༄ 目目+🔸࿐ $(TZ=UTC-8 date "+%Y.%m.%d")"
+echo "$Customized_Information" > files/etc/banner
+
+# 添加调试信息到 UCI 默认脚本
+cat << EOF >> "$UCI_DEFAULTS_FILE"
+# 调试：创建文件以确认脚本执行
+touch /tmp/uci-defaults-executed
+echo "UCI defaults script executed on $(date)" > /tmp/uci-defaults-log
+EOF
+
+# 确认 files/ 目录内容
+echo "Checking files/ directory contents:"
+ls -R files/
+
+# 提示用户在编译后检查
+echo "After compilation, please check if 'files/etc/uci-defaults/99-custom' and 'files/etc/banner' are included in the firmware."
+
 
 # 内核和系统分区大小(不是每个机型都可用)
 Kernel_partition_size="0" # 内核分区大小(单位MB,填0为不作修改)
