@@ -80,7 +80,7 @@ chmod +x package/base-files/files/etc/uci-defaults/99-custom-settings
 if [ "$Ipv4_ipaddr" != "0" ]; then
   echo "设置后台IP为 $Ipv4_ipaddr"
   # 方法1: 修改配置生成脚本
-  sed -i "s/192.168.1.1/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate 2>/dev/null || true
+  sed -i "s/192.168.6.1/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate 2>/dev/null || true
   
   # 方法2: 直接放入网络配置文件
   mkdir -p package/base-files/files/etc/config/
