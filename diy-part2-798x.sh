@@ -90,6 +90,9 @@ fi
 if [ "$Op_name" != "0" ]; then
   echo "设置主机名为 $Op_name"
   sed -i "s/ImmortalWrt/$Op_name/g" package/base-files/files/bin/config_generate
+  # 备用方法，如果上面的替换失败
+  echo "uci set system.@system<source_id data="0" title="diy-part2-798x.sh" />.hostname='$Op_name'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  echo "uci commit system" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
 # 应用主题设置
@@ -100,7 +103,7 @@ fi
 
 if [ "$Default_theme" != "0" ]; then
   echo "设置默认主题为 $Default_theme"
-  echo "uci set luci.main.mediaurlbase=/luci-static/$Default_theme" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  echo "uci set luci.main.mediaurlbase='/luci-static/$Default_theme'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
   echo "uci commit luci" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
@@ -132,7 +135,9 @@ fi
 # 密码设置
 if [ "$Password_free_login" == "1" ]; then
   echo "设置免密码登录"
-  sed -i '/root:/d' package/base-files/files/etc/shadow
+  sed -i '/root:/d' package/base-files/files/etc/shadow 2>/dev/null || true
+  mkdir -p package/base-files/files/etc/
+  touch package/base-files/files/etc/shadow
   echo "root::0:0:99999:7:::" >> package/base-files/files/etc/shadow
 fi
 
@@ -143,11 +148,12 @@ if [ "$Customized_Information" != "0" ]; then
   echo "$Customized_Information" > package/base-files/files/etc/customized_information
   if [ -f "package/base-files/files/etc/rc.local" ]; then
     sed -i '/exit 0/d' package/base-files/files/etc/rc.local
-    echo "echo \"\$(cat /etc/customized_information)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
+    echo "echo \"\$(cat /etc/customized_information 2>/dev/null)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
     echo "exit 0" >> package/base-files/files/etc/rc.local
   else
+    mkdir -p package/base-files/files/etc/
     echo "#!/bin/sh" > package/base-files/files/etc/rc.local
-    echo "echo \"\$(cat /etc/customized_information)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
+    echo "echo \"\$(cat /etc/customized_information 2>/dev/null)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
     echo "exit 0" >> package/base-files/files/etc/rc.local
     chmod +x package/base-files/files/etc/rc.local
   fi
@@ -167,31 +173,64 @@ fi
 # 禁用网络共享
 if [ "$Disable_autosamba" == "1" ]; then
   echo "禁用自动Samba"
-  sed -i '/CONFIG_PACKAGE_autosamba/d' .config
-  sed -i '/CONFIG_PACKAGE_luci-app-samba/d' .config
-  sed -i '/CONFIG_PACKAGE_luci-app-samba4/d' .config
+  # 创建/修改配置文件
+  mkdir -p package/base-files/files/etc/uci-defaults/
+  cat << EOF >> package/base-files/files/etc/uci-defaults/99-disable-samba
+#!/bin/sh
+# 禁用Samba服务
+uci delete samba.@samba<source_id data="0" title="diy-part2-798x.sh" /> 2>/dev/null || true
+uci commit
+/etc/init.d/samba stop 2>/dev/null || true
+/etc/init.d/samba disable 2>/dev/null || true
+exit 0
+EOF
+  chmod +x package/base-files/files/etc/uci-defaults/99-disable-samba
   
-  echo "# CONFIG_PACKAGE_autosamba is not set" >> .config
-  echo "# CONFIG_PACKAGE_luci-app-samba is not set" >> .config
-  echo "# CONFIG_PACKAGE_luci-app-samba4 is not set" >> .config
+  # 尝试从.config中删除Samba (如果存在)
+  if [ -f ".config" ]; then
+    sed -i '/CONFIG_PACKAGE_autosamba/d' .config 2>/dev/null || true
+    sed -i '/CONFIG_PACKAGE_luci-app-samba/d' .config 2>/dev/null || true
+    sed -i '/CONFIG_PACKAGE_luci-app-samba4/d' .config 2>/dev/null || true
+    echo "# CONFIG_PACKAGE_autosamba is not set" >> .config
+    echo "# CONFIG_PACKAGE_luci-app-samba is not set" >> .config
+    echo "# CONFIG_PACKAGE_luci-app-samba4 is not set" >> .config
+  fi
 fi
 
 # 修改ttyd免密登录
 if [ "$Ttyd_account_free_login" == "1" ]; then
   echo "设置ttyd免密登录"
   echo "sed -i 's/login/login -f root/g' /etc/config/ttyd" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  echo "uci commit ttyd" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
 # 修改插件名字
 echo "修改插件名称..."
-sed -i 's/"终端"/"终端TTYD"/g' `find . -type f -name "*.po" | xargs grep -l "终端" | xargs echo`
-sed -i 's/"网络存储"/"NAS"/g' `find . -type f -name "*.po" | xargs grep -l "网络存储" | xargs echo`
-sed -i 's/"实时流量监测"/"流量"/g' `find . -type f -name "*.po" | xargs grep -l "实时流量监测" | xargs echo`
-sed -i 's/"KMS 服务器"/"KMS激活"/g' `find . -type f -name "*.po" | xargs grep -l "KMS 服务器" | xargs echo`
-sed -i 's/"USB 打印服务器"/"打印服务"/g' `find . -type f -name "*.po" | xargs grep -l "USB 打印服务器" | xargs echo`
-sed -i 's/"Web 管理"/"Web管理"/g' `find . -type f -name "*.po" | xargs grep -l "Web 管理" | xargs echo`
-sed -i 's/"管理权"/"管理权"/g' `find . -type f -name "*.po" | xargs grep -l "管理权" | xargs echo`
-sed -i 's/"带宽监控"/"带宽监控"/g' `find . -type f -name "*.po" | xargs grep -l "带宽监控" | xargs echo`
+find_and_replace() {
+  local search="$1"
+  local replace="$2"
+  # 查找可能包含匹配文本的所有 .po .lua .htm .js 文件
+  local files=$(find . -type f \( -name "*.po" -o -name "*.lua" -o -name "*.htm" -o -name "*.js" \) | xargs grep -l "$search" 2>/dev/null || true)
+  
+  if [ -n "$files" ]; then
+    echo "修改 '$search' 为 '$replace'"
+    for file in $files; do
+      sed -i "s/$search/$replace/g" "$file" 2>/dev/null || true
+    done
+  else
+    echo "未找到包含 '$search' 的文件，跳过替换"
+  fi
+}
+
+# 应用插件名替换
+find_and_replace "终端" "终端TTYD"
+find_and_replace "网络存储" "NAS"
+find_and_replace "实时流量监测" "流量"
+find_and_replace "KMS 服务器" "KMS激活"
+find_and_replace "USB 打印服务器" "打印服务"
+find_and_replace "Web 管理" "Web管理"
+find_and_replace "管理权" "管理权"
+find_and_replace "带宽监控" "带宽监控"
 
 # 整理固件包时候,删除您不想要的固件或者文件,让它不需要上传到Actions空间(根据编译机型变化,自行调整删除名称)
 CLEAR_PATH="$(pwd)/Clear_PATH.sh"
