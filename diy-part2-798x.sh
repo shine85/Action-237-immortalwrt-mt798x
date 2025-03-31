@@ -76,72 +76,31 @@ mkdir -p package/base-files/files/etc/uci-defaults
 touch package/base-files/files/etc/uci-defaults/99-custom-settings
 chmod +x package/base-files/files/etc/uci-defaults/99-custom-settings
 
-# 应用IP地址设置 - 增强修复
+# 应用IP地址设置
 if [ "$Ipv4_ipaddr" != "0" ]; then
   echo "设置后台IP为 $Ipv4_ipaddr"
-  # 方法1: 修改配置生成脚本
-  sed -i "s/192.168.6.1/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate 2>/dev/null || true
-  
-  # 方法2: 直接放入网络配置文件
-  mkdir -p package/base-files/files/etc/config/
-  if [ ! -f "package/base-files/files/etc/config/network" ]; then
-    cat << EOF > package/base-files/files/etc/config/network
-config interface 'lan'
-    option type 'bridge'
-    option ifname 'eth0'
-    option proto 'static'
-    option ipaddr '$Ipv4_ipaddr'
-    option netmask '$Netmask_netm'
-EOF
-  else
-    sed -i "s/option ipaddr '[0-9.]*'/option ipaddr '$Ipv4_ipaddr'/g" package/base-files/files/etc/config/network 2>/dev/null || true
-  fi
-  
-  # 方法3: 创建uci-defaults脚本确保IP设置生效
-  cat << EOF > package/base-files/files/etc/uci-defaults/99-custom-ip
-#!/bin/sh
-uci set network.lan.ipaddr='$Ipv4_ipaddr'
-uci commit network
-exit 0
-EOF
-  chmod +x package/base-files/files/etc/uci-defaults/99-custom-ip
+  sed -i "s/192.168.6.1/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate
 fi
-
-# 方法2: 使用uci-defaults确保IP地址设置（最可靠）
-cat <<EOF > package/base-files/files/etc/uci-defaults/99-custom-ip
-#!/bin/sh
-uci set network.lan.ipaddr='$Ipv4_ipaddr'
-uci set network.lan.netmask='$Netmask_netm'
-uci commit network
-exit 0
-EOF
-chmod +x package/base-files/files/etc/uci-defaults/99-custom-ip
 
 if [ "$Netmask_netm" != "0" ]; then
   echo "设置子网掩码为 $Netmask_netm"
-  sed -i "s/255.255.255.0/$Netmask_netm/g" package/base-files/files/bin/config_generate 2>/dev/null || true
-  # 确保通过uci-defaults设置
-  echo "uci set network.lan.netmask='$Netmask_netm'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
-  echo "uci commit network" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  sed -i "s/255.255.255.0/$Netmask_netm/g" package/base-files/files/bin/config_generate
 fi
 
 if [ "$Op_name" != "0" ]; then
   echo "设置主机名为 $Op_name"
-  sed -i "s/ImmortalWrt/$Op_name/g" package/base-files/files/bin/config_generate 2>/dev/null || true
-  # 备用方法
-  echo "uci set system.@system<source_id data="0" title="diy-part2-798x.sh" />.hostname='$Op_name'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
-  echo "uci commit system" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  sed -i "s/ImmortalWrt/$Op_name/g" package/base-files/files/bin/config_generate
 fi
 
 # 应用主题设置
 if [ "$Mandatory_theme" != "0" ] && [ -d "feeds/luci/collections/luci" ]; then
   echo "设置必选主题为 $Mandatory_theme"
-  sed -i "s/luci-theme-bootstrap/luci-theme-$Mandatory_theme/g" feeds/luci/collections/luci/Makefile 2>/dev/null || true
+  sed -i "s/luci-theme-bootstrap/luci-theme-$Mandatory_theme/g" feeds/luci/collections/luci/Makefile
 fi
 
 if [ "$Default_theme" != "0" ]; then
   echo "设置默认主题为 $Default_theme"
-  echo "uci set luci.main.mediaurlbase='/luci-static/$Default_theme'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  echo "uci set luci.main.mediaurlbase=/luci-static/$Default_theme" >> package/base-files/files/etc/uci-defaults/99-custom-settings
   echo "uci commit luci" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
@@ -160,81 +119,36 @@ fi
 
 if [ "$DNS_Settings" != "0" ]; then
   echo "设置DNS为 $DNS_Settings"
-  echo "uci del network.lan.dns" >> package/base-files/files/etc/uci-defaults/99-custom-settings
-  for DNS in $DNS_Settings; do
-    echo "uci add_list network.lan.dns='$DNS'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
-  done
-  echo "uci commit network" >> package/base-files/files/etc/uci-defaults/99-custom-settings
-fi
-
-if [ "$Broadcast_Ipv4" != "0" ]; then
-  echo "设置IPV4广播为 $Broadcast_Ipv4"
-  echo "uci set network.lan.broadcast='$Broadcast_Ipv4'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  echo "uci set network.lan.dns='$DNS_Settings'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
   echo "uci commit network" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
 if [ "$Disable_Bridge" == "1" ]; then
   echo "禁用桥接模式"
   echo "uci set network.lan.type='static'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
-  echo "uci del network.lan.type 'bridge'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
   echo "uci commit network" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
+# 密码设置
 if [ "$Password_free_login" == "1" ]; then
   echo "设置免密码登录"
-  # 直接清空密码Hash
-  mkdir -p package/base-files/files/etc
-  touch package/base-files/files/etc/shadow
-  sed -i '/root/d' package/base-files/files/etc/shadow 2>/dev/null || true
-  echo 'root::::::::' >> package/base-files/files/etc/shadow
-  
-  # 备用方法 - 创建脚本在启动时设置
-  cat << EOF > package/base-files/files/etc/uci-defaults/99-clear-password
-#!/bin/sh
-sed -i '/root/d' /etc/shadow
-echo 'root::::::::' >> /etc/shadow
-exit 0
-EOF
-  chmod +x package/base-files/files/etc/uci-defaults/99-clear-password
+  sed -i '/root:/d' package/base-files/files/etc/shadow
+  echo "root::0:0:99999:7:::" >> package/base-files/files/etc/shadow
 fi
 
-# 添加个性签名到固件 - 增强修复
+# 添加自定义信息到固件
 if [ "$Customized_Information" != "0" ]; then
   echo "添加个性签名: $Customized_Information"
-  
-  # 方法1: 创建自定义信息文件
   mkdir -p package/base-files/files/etc/
   echo "$Customized_Information" > package/base-files/files/etc/customized_information
-  
-  # 方法2: 直接修改原始banner文件
-  if [ -f "package/base-files/files/etc/banner" ]; then
-    echo "$Customized_Information" >> package/base-files/files/etc/banner
-  else 
-    # 如果banner不存在，创建它
-    mkdir -p package/base-files/files/etc/
-    echo "$Customized_Information" > package/base-files/files/etc/banner
-  fi
-  
-  # 方法3: 创建uci-defaults脚本确保banner追加
-  cat << EOF > package/base-files/files/etc/uci-defaults/99-custom-banner
-#!/bin/sh
-echo "$Customized_Information" >> /etc/banner
-exit 0
-EOF
-  chmod +x package/base-files/files/etc/uci-defaults/99-custom-banner
-  
-  # 方法4: 修改/创建rc.local以确保每次启动都添加
-  mkdir -p package/base-files/files/etc/
   if [ -f "package/base-files/files/etc/rc.local" ]; then
-    sed -i '/exit 0/d' package/base-files/files/etc/rc.local 2>/dev/null
-    echo "echo \"$Customized_Information\" >> /etc/banner" >> package/base-files/files/etc/rc.local
+    sed -i '/exit 0/d' package/base-files/files/etc/rc.local
+    echo "echo \"\$(cat /etc/customized_information)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
     echo "exit 0" >> package/base-files/files/etc/rc.local
   else
-    cat << EOF > package/base-files/files/etc/rc.local
-#!/bin/sh
-echo "$Customized_Information" >> /etc/banner
-exit 0
-EOF
+    echo "#!/bin/sh" > package/base-files/files/etc/rc.local
+    echo "echo \"\$(cat /etc/customized_information)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
+    echo "exit 0" >> package/base-files/files/etc/rc.local
     chmod +x package/base-files/files/etc/rc.local
   fi
 fi
@@ -253,64 +167,31 @@ fi
 # 禁用网络共享
 if [ "$Disable_autosamba" == "1" ]; then
   echo "禁用自动Samba"
-  # 创建/修改配置文件
-  mkdir -p package/base-files/files/etc/uci-defaults/
-  cat << EOF >> package/base-files/files/etc/uci-defaults/99-disable-samba
-#!/bin/sh
-# 禁用Samba服务
-uci delete samba.@samba<source_id data="0" title="diy-part2-798x.sh" /> 2>/dev/null || true
-uci commit
-/etc/init.d/samba stop 2>/dev/null || true
-/etc/init.d/samba disable 2>/dev/null || true
-exit 0
-EOF
-  chmod +x package/base-files/files/etc/uci-defaults/99-disable-samba
+  sed -i '/CONFIG_PACKAGE_autosamba/d' .config
+  sed -i '/CONFIG_PACKAGE_luci-app-samba/d' .config
+  sed -i '/CONFIG_PACKAGE_luci-app-samba4/d' .config
   
-  # 尝试从.config中删除Samba (如果存在)
-  if [ -f ".config" ]; then
-    sed -i '/CONFIG_PACKAGE_autosamba/d' .config 2>/dev/null || true
-    sed -i '/CONFIG_PACKAGE_luci-app-samba/d' .config 2>/dev/null || true
-    sed -i '/CONFIG_PACKAGE_luci-app-samba4/d' .config 2>/dev/null || true
-    echo "# CONFIG_PACKAGE_autosamba is not set" >> .config
-    echo "# CONFIG_PACKAGE_luci-app-samba is not set" >> .config
-    echo "# CONFIG_PACKAGE_luci-app-samba4 is not set" >> .config
-  fi
+  echo "# CONFIG_PACKAGE_autosamba is not set" >> .config
+  echo "# CONFIG_PACKAGE_luci-app-samba is not set" >> .config
+  echo "# CONFIG_PACKAGE_luci-app-samba4 is not set" >> .config
 fi
 
 # 修改ttyd免密登录
 if [ "$Ttyd_account_free_login" == "1" ]; then
   echo "设置ttyd免密登录"
   echo "sed -i 's/login/login -f root/g' /etc/config/ttyd" >> package/base-files/files/etc/uci-defaults/99-custom-settings
-  echo "uci commit ttyd" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
 # 修改插件名字
 echo "修改插件名称..."
-find_and_replace() {
-  local search="$1"
-  local replace="$2"
-  # 查找可能包含匹配文本的所有 .po .lua .htm .js 文件
-  local files=$(find . -type f \( -name "*.po" -o -name "*.lua" -o -name "*.htm" -o -name "*.js" \) | xargs grep -l "$search" 2>/dev/null || true)
-  
-  if [ -n "$files" ]; then
-    echo "修改 '$search' 为 '$replace'"
-    for file in $files; do
-      sed -i "s/$search/$replace/g" "$file" 2>/dev/null || true
-    done
-  else
-    echo "未找到包含 '$search' 的文件，跳过替换"
-  fi
-}
-
-# 应用插件名替换
-find_and_replace "终端" "终端TTYD"
-find_and_replace "网络存储" "NAS"
-find_and_replace "实时流量监测" "流量"
-find_and_replace "KMS 服务器" "KMS激活"
-find_and_replace "USB 打印服务器" "打印服务"
-find_and_replace "Web 管理" "Web管理"
-find_and_replace "管理权" "管理权"
-find_and_replace "带宽监控" "带宽监控"
+sed -i 's/"终端"/"终端TTYD"/g' `find . -type f -name "*.po" | xargs grep -l "终端" | xargs echo`
+sed -i 's/"网络存储"/"NAS"/g' `find . -type f -name "*.po" | xargs grep -l "网络存储" | xargs echo`
+sed -i 's/"实时流量监测"/"流量"/g' `find . -type f -name "*.po" | xargs grep -l "实时流量监测" | xargs echo`
+sed -i 's/"KMS 服务器"/"KMS激活"/g' `find . -type f -name "*.po" | xargs grep -l "KMS 服务器" | xargs echo`
+sed -i 's/"USB 打印服务器"/"打印服务"/g' `find . -type f -name "*.po" | xargs grep -l "USB 打印服务器" | xargs echo`
+sed -i 's/"Web 管理"/"Web管理"/g' `find . -type f -name "*.po" | xargs grep -l "Web 管理" | xargs echo`
+sed -i 's/"管理权"/"管理权"/g' `find . -type f -name "*.po" | xargs grep -l "管理权" | xargs echo`
+sed -i 's/"带宽监控"/"带宽监控"/g' `find . -type f -name "*.po" | xargs grep -l "带宽监控" | xargs echo`
 
 # 整理固件包时候,删除您不想要的固件或者文件,让它不需要上传到Actions空间(根据编译机型变化,自行调整删除名称)
 CLEAR_PATH="$(pwd)/Clear_PATH.sh"
