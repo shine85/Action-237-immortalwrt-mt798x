@@ -9,7 +9,7 @@ git clone https://github.com/281677160/luci-app-autoupdate package/autoupdate
 # 后台IP设置
 export Ipv4_ipaddr="192.168.150.2"            # 修改openwrt后台地址(填0为关闭)
 export Netmask_netm="255.255.255.0"         # IPv4 子网掩码(默认:255.255.255.0)(填0为不作修改)
-export Op_name="Shine-OP"                # 修改主机名称为OpenWrt-123(填0为不作修改)
+export Op_name="༄ 目目+࿐"                # 修改主机名称为OpenWrt-123(填0为不作修改)
 
 # 内核和系统分区大小(不是每个机型都可用)
 export Kernel_partition_size="0"            # 内核分区大小,每个机型默认值不一样 (填写您想要的数值,默认一般16,数值以MB计算,填0为不作修改),如果你不懂就填0
@@ -21,7 +21,7 @@ export Default_theme="argon"                # 多主题时,选择某主题为默
 
 # 旁路由选项
 export Gateway_Settings="192.168.150.1"                 # 旁路由设置 IPv4 网关(填入您的网关IP为启用)(填0为不作修改)
-export DNS_Settings="192.168.151.2 223.5.5.5"           # 旁路由设置 DNS(填入DNS,多个DNS要用空格分开)(填0为不作修改)
+export DNS_Settings="192.168.151.2 223.5.5.5"                     # 旁路由设置 DNS(填入DNS,多个DNS要用空格分开)(填0为不作修改)
 export Broadcast_Ipv4="0"                   # 设置 IPv4 广播(填入您的IP为启用)(填0为不作修改)
 export Disable_DHCP="1"                     # 旁路由关闭DHCP功能(1为启用命令,填0为不作修改)
 export Disable_Bridge="1"                   # 旁路由去掉桥接模式(1为启用命令,填0为不作修改)
@@ -80,7 +80,7 @@ chmod +x package/base-files/files/etc/uci-defaults/99-custom-settings
 if [ "$Ipv4_ipaddr" != "0" ]; then
   echo "设置后台IP为 $Ipv4_ipaddr"
   # 方法1: 修改配置生成脚本
-  sed -i "s/192.168.6.1/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate 2>/dev/null || true
+  sed -i "s/192.168.1.1/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate 2>/dev/null || true
   
   # 方法2: 直接放入网络配置文件
   mkdir -p package/base-files/files/etc/config/
