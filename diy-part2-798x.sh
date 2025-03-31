@@ -79,7 +79,7 @@ chmod +x package/base-files/files/etc/uci-defaults/99-custom-settings
 # 应用IP地址设置
 if [ "$Ipv4_ipaddr" != "0" ]; then
   echo "设置后台IP为 $Ipv4_ipaddr"
-  sed -i "s/192.168.6.1/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate
+  sed -i "s/192.168.1.1/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate
 fi
 
 if [ "$Netmask_netm" != "0" ]; then
@@ -89,11 +89,11 @@ fi
 
 if [ "$Op_name" != "0" ]; then
   echo "设置主机名为 $Op_name"
-  sed -i "s/ImmortalWrt/$Op_name/g" package/base-files/files/bin/config_generate
+  sed -i "s/OpenWrt/$Op_name/g" package/base-files/files/bin/config_generate
 fi
 
 # 应用主题设置
-if [ "$Mandatory_theme" != "0" ] && [ -d "feeds/luci/collections/luci" ]; then
+if [ "$Mandatory_theme" != "0" ]; then
   echo "设置必选主题为 $Mandatory_theme"
   sed -i "s/luci-theme-bootstrap/luci-theme-$Mandatory_theme/g" feeds/luci/collections/luci/Makefile
 fi
@@ -139,18 +139,8 @@ fi
 # 添加自定义信息到固件
 if [ "$Customized_Information" != "0" ]; then
   echo "添加个性签名: $Customized_Information"
-  mkdir -p package/base-files/files/etc/
   echo "$Customized_Information" > package/base-files/files/etc/customized_information
-  if [ -f "package/base-files/files/etc/rc.local" ]; then
-    sed -i '/exit 0/d' package/base-files/files/etc/rc.local
-    echo "echo \"\$(cat /etc/customized_information)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
-    echo "exit 0" >> package/base-files/files/etc/rc.local
-  else
-    echo "#!/bin/sh" > package/base-files/files/etc/rc.local
-    echo "echo \"\$(cat /etc/customized_information)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
-    echo "exit 0" >> package/base-files/files/etc/rc.local
-    chmod +x package/base-files/files/etc/rc.local
-  fi
+  echo "echo \"\$(cat /etc/customized_information)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
 fi
 
 # 应用IPV6/IPV4设置
@@ -164,34 +154,22 @@ if [ "$Enable_IPV6_function" == "1" ]; then
   echo "uci commit dhcp" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
-# 禁用网络共享
 if [ "$Disable_autosamba" == "1" ]; then
   echo "禁用自动Samba"
-  sed -i '/CONFIG_PACKAGE_autosamba/d' .config
-  sed -i '/CONFIG_PACKAGE_luci-app-samba/d' .config
-  sed -i '/CONFIG_PACKAGE_luci-app-samba4/d' .config
-  
-  echo "# CONFIG_PACKAGE_autosamba is not set" >> .config
-  echo "# CONFIG_PACKAGE_luci-app-samba is not set" >> .config
-  echo "# CONFIG_PACKAGE_luci-app-samba4 is not set" >> .config
-fi
-
-# 修改ttyd免密登录
-if [ "$Ttyd_account_free_login" == "1" ]; then
-  echo "设置ttyd免密登录"
-  echo "sed -i 's/login/login -f root/g' /etc/config/ttyd" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  sed -i 's/CONFIG_PACKAGE_autosamba=y/# CONFIG_PACKAGE_autosamba is not set/g' .config
+  sed -i 's/CONFIG_PACKAGE_luci-app-samba=y/# CONFIG_PACKAGE_luci-app-samba is not set/g' .config
+  sed -i 's/CONFIG_PACKAGE_luci-app-samba4=y/# CONFIG_PACKAGE_luci-app-samba4 is not set/g' .config
 fi
 
 # 修改插件名字
-echo "修改插件名称..."
-sed -i 's/"终端"/"终端TTYD"/g' `find . -type f -name "*.po" | xargs grep -l "终端" | xargs echo`
-sed -i 's/"网络存储"/"NAS"/g' `find . -type f -name "*.po" | xargs grep -l "网络存储" | xargs echo`
-sed -i 's/"实时流量监测"/"流量"/g' `find . -type f -name "*.po" | xargs grep -l "实时流量监测" | xargs echo`
-sed -i 's/"KMS 服务器"/"KMS激活"/g' `find . -type f -name "*.po" | xargs grep -l "KMS 服务器" | xargs echo`
-sed -i 's/"USB 打印服务器"/"打印服务"/g' `find . -type f -name "*.po" | xargs grep -l "USB 打印服务器" | xargs echo`
-sed -i 's/"Web 管理"/"Web管理"/g' `find . -type f -name "*.po" | xargs grep -l "Web 管理" | xargs echo`
-sed -i 's/"管理权"/"管理权"/g' `find . -type f -name "*.po" | xargs grep -l "管理权" | xargs echo`
-sed -i 's/"带宽监控"/"带宽监控"/g' `find . -type f -name "*.po" | xargs grep -l "带宽监控" | xargs echo`
+sed -i 's/"终端"/"终端TTYD"/g' `egrep "终端" -rl ./`
+sed -i 's/"网络存储"/"NAS"/g' `egrep "网络存储" -rl ./`
+sed -i 's/"实时流量监测"/"流量"/g' `egrep "实时流量监测" -rl ./`
+sed -i 's/"KMS 服务器"/"KMS激活"/g' `egrep "KMS 服务器" -rl ./`
+sed -i 's/"USB 打印服务器"/"打印服务"/g' `egrep "USB 打印服务器" -rl ./`
+sed -i 's/"Web 管理"/"Web管理"/g' `egrep "Web 管理" -rl ./`
+sed -i 's/"管理权"/"管理权"/g' `egrep "管理权" -rl ./`
+sed -i 's/"带宽监控"/"带宽监控"/g' `egrep "带宽监控" -rl ./`
 
 # 整理固件包时候,删除您不想要的固件或者文件,让它不需要上传到Actions空间(根据编译机型变化,自行调整删除名称)
 CLEAR_PATH="$(pwd)/Clear_PATH.sh"
@@ -202,7 +180,9 @@ feeds.buildinfo
 sha256sums
 version.buildinfo
 profiles.json
-openwrt-mt798x-*-rootfs.tar.gz
+openwrt-x86-64-generic-kernel.bin
+openwrt-x86-64-generic.manifest
+openwrt-x86-64-generic-squashfs-rootfs.img.gz
 EOF
 
 # 在线更新时,删除不想保留固件的某个文件,在EOF跟EOF之间加入删除代码,记住这里对应的是固件的文件路径,比如: rm -rf /etc/config/luci
