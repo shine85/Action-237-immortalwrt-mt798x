@@ -77,10 +77,24 @@ touch package/base-files/files/etc/uci-defaults/99-custom-settings
 chmod +x package/base-files/files/etc/uci-defaults/99-custom-settings
 
 # 应用IP地址设置
-if [ "$Ipv4_ipaddr" != "0" ]; then
-  echo "设置后台IP为 $Ipv4_ipaddr"
-  sed -i "s/192.168.1.1/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate
+# 方法1: 先检查默认IP，再替换（更健壮的方法）
+default_ip=$(grep -o -E '192\.168\.[0-9]{1,3}\.[0-9]{1,3}' package/base-files/files/bin/config_generate | head -n 1)
+if [ -n "$default_ip" ]; then
+  echo "检测到默认IP: $default_ip，替换为: $Ipv4_ipaddr"
+  sed -i "s/$default_ip/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate
+else
+  echo "无法检测到默认IP，使用直接设置方法"
 fi
+
+# 方法2: 使用uci-defaults确保IP地址设置（最可靠）
+cat <<EOF > package/base-files/files/etc/uci-defaults/99-custom-ip
+#!/bin/sh
+uci set network.lan.ipaddr='$Ipv4_ipaddr'
+uci set network.lan.netmask='$Netmask_netm'
+uci commit network
+exit 0
+EOF
+chmod +x package/base-files/files/etc/uci-defaults/99-custom-ip
 
 if [ "$Netmask_netm" != "0" ]; then
   echo "设置子网掩码为 $Netmask_netm"
