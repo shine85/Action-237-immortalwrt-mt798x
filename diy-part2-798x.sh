@@ -9,7 +9,7 @@ git clone https://github.com/281677160/luci-app-autoupdate package/autoupdate
 # 后台IP设置
 export Ipv4_ipaddr="192.168.150.2"            # 修改openwrt后台地址(填0为关闭)
 export Netmask_netm="255.255.255.0"         # IPv4 子网掩码(默认:255.255.255.0)(填0为不作修改)
-export Op_name="Shine-OP"                # 修改主机名称为OpenWrt-123(填0为不作修改)
+export Op_name="༄ 目目+࿐"                # 修改主机名称为OpenWrt-123(填0为不作修改)
 
 # 内核和系统分区大小(不是每个机型都可用)
 export Kernel_partition_size="0"            # 内核分区大小,每个机型默认值不一样 (填写您想要的数值,默认一般16,数值以MB计算,填0为不作修改),如果你不懂就填0
@@ -76,14 +76,35 @@ mkdir -p package/base-files/files/etc/uci-defaults
 touch package/base-files/files/etc/uci-defaults/99-custom-settings
 chmod +x package/base-files/files/etc/uci-defaults/99-custom-settings
 
-# 应用IP地址设置
-# 方法1: 先检查默认IP，再替换（更健壮的方法）
-default_ip=$(grep -o -E '192\.168\.[0-9]{1,3}\.[0-9]{1,3}' package/base-files/files/bin/config_generate | head -n 1)
-if [ -n "$default_ip" ]; then
-  echo "检测到默认IP: $default_ip，替换为: $Ipv4_ipaddr"
-  sed -i "s/$default_ip/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate
-else
-  echo "无法检测到默认IP，使用直接设置方法"
+# 应用IP地址设置 - 增强修复
+if [ "$Ipv4_ipaddr" != "0" ]; then
+  echo "设置后台IP为 $Ipv4_ipaddr"
+  # 方法1: 修改配置生成脚本
+  sed -i "s/192.168.6.1/$Ipv4_ipaddr/g" package/base-files/files/bin/config_generate 2>/dev/null || true
+  
+  # 方法2: 直接放入网络配置文件
+  mkdir -p package/base-files/files/etc/config/
+  if [ ! -f "package/base-files/files/etc/config/network" ]; then
+    cat << EOF > package/base-files/files/etc/config/network
+config interface 'lan'
+    option type 'bridge'
+    option ifname 'eth0'
+    option proto 'static'
+    option ipaddr '$Ipv4_ipaddr'
+    option netmask '$Netmask_netm'
+EOF
+  else
+    sed -i "s/option ipaddr '[0-9.]*'/option ipaddr '$Ipv4_ipaddr'/g" package/base-files/files/etc/config/network 2>/dev/null || true
+  fi
+  
+  # 方法3: 创建uci-defaults脚本确保IP设置生效
+  cat << EOF > package/base-files/files/etc/uci-defaults/99-custom-ip
+#!/bin/sh
+uci set network.lan.ipaddr='$Ipv4_ipaddr'
+uci commit network
+exit 0
+EOF
+  chmod +x package/base-files/files/etc/uci-defaults/99-custom-ip
 fi
 
 # 方法2: 使用uci-defaults确保IP地址设置（最可靠）
@@ -98,13 +119,16 @@ chmod +x package/base-files/files/etc/uci-defaults/99-custom-ip
 
 if [ "$Netmask_netm" != "0" ]; then
   echo "设置子网掩码为 $Netmask_netm"
-  sed -i "s/255.255.255.0/$Netmask_netm/g" package/base-files/files/bin/config_generate
+  sed -i "s/255.255.255.0/$Netmask_netm/g" package/base-files/files/bin/config_generate 2>/dev/null || true
+  # 确保通过uci-defaults设置
+  echo "uci set network.lan.netmask='$Netmask_netm'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  echo "uci commit network" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
 if [ "$Op_name" != "0" ]; then
   echo "设置主机名为 $Op_name"
-  sed -i "s/ImmortalWrt/$Op_name/g" package/base-files/files/bin/config_generate
-  # 备用方法，如果上面的替换失败
+  sed -i "s/ImmortalWrt/$Op_name/g" package/base-files/files/bin/config_generate 2>/dev/null || true
+  # 备用方法
   echo "uci set system.@system<source_id data="0" title="diy-part2-798x.sh" />.hostname='$Op_name'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
   echo "uci commit system" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
@@ -112,7 +136,7 @@ fi
 # 应用主题设置
 if [ "$Mandatory_theme" != "0" ] && [ -d "feeds/luci/collections/luci" ]; then
   echo "设置必选主题为 $Mandatory_theme"
-  sed -i "s/luci-theme-bootstrap/luci-theme-$Mandatory_theme/g" feeds/luci/collections/luci/Makefile
+  sed -i "s/luci-theme-bootstrap/luci-theme-$Mandatory_theme/g" feeds/luci/collections/luci/Makefile 2>/dev/null || true
 fi
 
 if [ "$Default_theme" != "0" ]; then
@@ -136,39 +160,81 @@ fi
 
 if [ "$DNS_Settings" != "0" ]; then
   echo "设置DNS为 $DNS_Settings"
-  echo "uci set network.lan.dns='$DNS_Settings'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  echo "uci del network.lan.dns" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  for DNS in $DNS_Settings; do
+    echo "uci add_list network.lan.dns='$DNS'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  done
+  echo "uci commit network" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+fi
+
+if [ "$Broadcast_Ipv4" != "0" ]; then
+  echo "设置IPV4广播为 $Broadcast_Ipv4"
+  echo "uci set network.lan.broadcast='$Broadcast_Ipv4'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
   echo "uci commit network" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
 if [ "$Disable_Bridge" == "1" ]; then
   echo "禁用桥接模式"
   echo "uci set network.lan.type='static'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
+  echo "uci del network.lan.type 'bridge'" >> package/base-files/files/etc/uci-defaults/99-custom-settings
   echo "uci commit network" >> package/base-files/files/etc/uci-defaults/99-custom-settings
 fi
 
-# 密码设置
 if [ "$Password_free_login" == "1" ]; then
   echo "设置免密码登录"
-  sed -i '/root:/d' package/base-files/files/etc/shadow 2>/dev/null || true
-  mkdir -p package/base-files/files/etc/
+  # 直接清空密码Hash
+  mkdir -p package/base-files/files/etc
   touch package/base-files/files/etc/shadow
-  echo "root::0:0:99999:7:::" >> package/base-files/files/etc/shadow
+  sed -i '/root/d' package/base-files/files/etc/shadow 2>/dev/null || true
+  echo 'root::::::::' >> package/base-files/files/etc/shadow
+  
+  # 备用方法 - 创建脚本在启动时设置
+  cat << EOF > package/base-files/files/etc/uci-defaults/99-clear-password
+#!/bin/sh
+sed -i '/root/d' /etc/shadow
+echo 'root::::::::' >> /etc/shadow
+exit 0
+EOF
+  chmod +x package/base-files/files/etc/uci-defaults/99-clear-password
 fi
 
-# 添加自定义信息到固件
+# 添加个性签名到固件 - 增强修复
 if [ "$Customized_Information" != "0" ]; then
   echo "添加个性签名: $Customized_Information"
+  
+  # 方法1: 创建自定义信息文件
   mkdir -p package/base-files/files/etc/
   echo "$Customized_Information" > package/base-files/files/etc/customized_information
+  
+  # 方法2: 直接修改原始banner文件
+  if [ -f "package/base-files/files/etc/banner" ]; then
+    echo "$Customized_Information" >> package/base-files/files/etc/banner
+  else 
+    # 如果banner不存在，创建它
+    mkdir -p package/base-files/files/etc/
+    echo "$Customized_Information" > package/base-files/files/etc/banner
+  fi
+  
+  # 方法3: 创建uci-defaults脚本确保banner追加
+  cat << EOF > package/base-files/files/etc/uci-defaults/99-custom-banner
+#!/bin/sh
+echo "$Customized_Information" >> /etc/banner
+exit 0
+EOF
+  chmod +x package/base-files/files/etc/uci-defaults/99-custom-banner
+  
+  # 方法4: 修改/创建rc.local以确保每次启动都添加
+  mkdir -p package/base-files/files/etc/
   if [ -f "package/base-files/files/etc/rc.local" ]; then
-    sed -i '/exit 0/d' package/base-files/files/etc/rc.local
-    echo "echo \"\$(cat /etc/customized_information 2>/dev/null)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
+    sed -i '/exit 0/d' package/base-files/files/etc/rc.local 2>/dev/null
+    echo "echo \"$Customized_Information\" >> /etc/banner" >> package/base-files/files/etc/rc.local
     echo "exit 0" >> package/base-files/files/etc/rc.local
   else
-    mkdir -p package/base-files/files/etc/
-    echo "#!/bin/sh" > package/base-files/files/etc/rc.local
-    echo "echo \"\$(cat /etc/customized_information 2>/dev/null)\" >> /etc/banner" >> package/base-files/files/etc/rc.local
-    echo "exit 0" >> package/base-files/files/etc/rc.local
+    cat << EOF > package/base-files/files/etc/rc.local
+#!/bin/sh
+echo "$Customized_Information" >> /etc/banner
+exit 0
+EOF
     chmod +x package/base-files/files/etc/rc.local
   fi
 fi
