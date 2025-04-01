@@ -45,50 +45,50 @@ echo "CONFIG_CREATE_IPV6_LAN=\"$Create_Ipv6_Lan\"" >> .config
 # IPV6、IPV4 选择
 export Enable_IPV6_function="0"             # 编译IPV6固件(1为启用命令,填0为不作修改)(如果跟Create_Ipv6_Lan一起启用命令的话,Create_Ipv6_Lan命令会自动关闭)
 export Enable_IPV4_function="0"             # 编译IPV4固件(1为启用命令,填0为不作修改)(如果跟Enable_IPV6_function一起启用命令的话,此命令会自动关闭)
-echo "CONFIG_ENABLE_IPV6_FUNCTION=\"$Enable_IPV6_function\"" >> .config
-echo "CONFIG_ENABLE_IPV4_FUNCTION=\"$Enable_IPV4_function\"" >> .config
+echo "CONFIG_ENABLE_IPV6_FUNCTION=\"$Enable_IPV6_function\"]" >> .config
+echo "CONFIG_ENABLE_IPV4_FUNCTION=\"$Enable_IPV4_function\"]" >> .config
 
 # 替换OpenClash的源码(默认master分支)
 export OpenClash_branch="0"                 # OpenClash的源码分别有【master分支】和【dev分支】(填0为使用master分支,填1为使用dev分支)
-echo "CONFIG_OPENCLASH_BRANCH=\"$OpenClash_branch\"" >> .config
+echo "CONFIG_OPENCLASH_BRANCH=\"$OpenClash_branch\"]" >> .config
 
 # 个性签名,默认增加年月日[$(TZ=UTC-8 date "+%Y.%m.%d")]
 export Customized_Information="༄ 目目+࿐$(TZ=UTC-8 date "+%Y.%m.%d")"  # 个性签名,你想写啥就写啥，(填0为不作修改)
-echo "CONFIG_CUSTOMIZED_INFORMATION=\"$Customized_Information\"" >> .config
+echo "CONFIG_CUSTOMIZED_INFORMATION=\"$Customized_Information\"]" >> .config
 
 # 更换固件内核
 export Replace_Kernel="0"                    # 更换内核版本,在对应源码的[target/linux/架构]查看patches-x.x,看看x.x有啥就有啥内核了(填入内核x.x版本号,填0为不作修改)
-echo "CONFIG_REPLACE_KERNEL=\"$Replace_Kernel\"" >> .config
+echo "CONFIG_REPLACE_KERNEL=\"$Replace_Kernel\"]" >> .config
 
 # 设置免密码登录(个别源码本身就没密码的)
 export Password_free_login="1"               # 设置首次登录后台密码为空（进入openwrt后自行修改密码）(1为启用命令,填0为不作修改)
-echo "CONFIG_PASSWORD_FREE_LOGIN=\"$Password_free_login\"" >> .config
+echo "CONFIG_PASSWORD_FREE_LOGIN=\"$Password_free_login\"]" >> .config
 
 # 增加AdGuardHome插件和核心
 export AdGuardHome_Core="0"                  # 编译固件时自动增加AdGuardHome插件和AdGuardHome插件核心,需要注意的是一个核心20多MB的,小闪存机子搞不来(1为启用命令,填0为不作修改)
-echo "CONFIG_ADGUARDHOME_CORE=\"$AdGuardHome_Core\"" >> .config
+echo "CONFIG_ADGUARDHOME_CORE=\"$AdGuardHome_Core\"]" >> .config
 
 # 禁用ssrplus和passwall的NaiveProxy
 export Disable_NaiveProxy="0"                # 因个别源码的分支不支持编译NaiveProxy,不小心选择了就编译错误了,为减少错误,打开这个选项后,就算选择了NaiveProxy也会把NaiveProxy干掉不进行编译的(1为启用命令,填0为不作修改)
-echo "CONFIG_DISABLE_NAIVEPROXY=\"$Disable_NaiveProxy\"" >> .config
+echo "CONFIG_DISABLE_NAIVEPROXY=\"$Disable_NaiveProxy\"]" >> .config
 
 # 开启NTFS格式盘挂载
 export Automatic_Mount_Settings="0"          # 编译时加入开启NTFS格式盘挂载的所需依赖(1为启用命令,填0为不作修改)
-echo "CONFIG_AUTOMATIC_MOUNT_SETTINGS=\"$Automatic_Mount_Settings\"" >> .config
+echo "CONFIG_AUTOMATIC_MOUNT_SETTINGS=\"$Automatic_Mount_Settings\"]" >> .config
 
 # 去除网络共享(autosamba)
 export Disable_autosamba="1"                 # 去掉源码默认自选的luci-app-samba或luci-app-samba4(1为启用命令,填0为不作修改)
-echo "CONFIG_DISABLE_AUTOSAMBA=\"$Disable_autosamba\"" >> .config
+echo "CONFIG_DISABLE_AUTOSAMBA=\"$Disable_autosamba\"]" >> .config
 
 # 其他
 export Ttyd_account_free_login="0"           # 设置ttyd免密登录(1为启用命令,填0为不作修改)
 export Delete_unnecessary_items="0"          # 个别机型内一堆其他机型固件,删除其他机型的,只保留当前主机型固件(1为启用命令,填0为不作修改)
 export Disable_53_redirection="0"            # 删除DNS强制重定向53端口防火墙规则(个别源码本身不带此功能)(1为启用命令,填0为不作修改)
 export Cancel_running="0"                    # 取消路由器每天跑分任务(个别源码本身不带此功能)(1为启用命令,填0为不作修改)
-echo "CONFIG_TTYD_ACCOUNT_FREE_LOGIN=\"$Ttyd_account_free_login\"" >> .config
-echo "CONFIG_DELETE_UNNECESSARY_ITEMS=\"$Delete_unnecessary_items\"" >> .config
-echo "CONFIG_DISABLE_53_REDIRECTION=\"$Disable_53_redirection\"" >> .config
-echo "CONFIG_CANCEL_RUNNING=\"$Cancel_running\"" >> .config
+echo "CONFIG_TTYD_ACCOUNT_FREE_LOGIN=\"$Ttyd_account_free_login\"]" >> .config
+echo "CONFIG_DELETE_UNNECESSARY_ITEMS=\"$Delete_unnecessary_items\"]" >> .config
+echo "CONFIG_DISABLE_53_REDIRECTION=\"$Disable_53_redirection\"]" >> .config
+echo "CONFIG_CANCEL_RUNNING=\"$Cancel_running\"]" >> .config
 
 # 晶晨CPU系列打包固件设置(不懂请看说明)
 export amlogic_model="s905d"
@@ -96,11 +96,11 @@ export amlogic_kernel="5.10.01_6.1.01"
 export auto_kernel="true"
 export rootfs_size="2560"
 export kernel_usage="stable"
-echo "CONFIG_AMLOGIC_MODEL=\"$amlogic_model\"" >> .config
-echo "CONFIG_AMLOGIC_KERNEL=\"$amlogic_kernel\"" >> .config
-echo "CONFIG_AUTO_KERNEL=\"$auto_kernel\"" >> .config
+echo "CONFIG_AMLOGIC_MODEL=\"$amlogic_model\"]" >> .config
+echo "CONFIG_AMLOGIC_KERNEL=\"$amlogic_kernel\"]" >> .config
+echo "CONFIG_AUTO_KERNEL=\"$auto_kernel\"]" >> .config
 echo "CONFIG_ROOTFS_SIZE=\"$rootfs_size\"]" >> .config
-echo "CONFIG_KERNEL_USAGE=\"$kernel_usage\"" >> .config
+echo "CONFIG_KERNEL_USAGE=\"$kernel_usage\"]" >> .config
 
 # 修改插件名字
 find ./ -type f -exec sed -i 's/"终端"/"终端TTYD"/g' {} +
