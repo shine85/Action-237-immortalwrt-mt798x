@@ -39,7 +39,7 @@ echo "CONFIG_GATEWAY_SETTINGS=\"$Gateway_Settings\"" >> .config
 echo "CONFIG_DNS_SETTINGS=\"$DNS_Settings\"" >> .config
 echo "CONFIG_BROADCAST_IPV4=\"$Broadcast_Ipv4\"" >> .config
 echo "CONFIG_DISABLE_DHCP=\"$Disable_DHCP\"" >> .config
-echo "CONFIG_DISABLE_BRIDGE=\"$Disable_Bridge\"" >> .config
+echo "CONFIG_DISABLE_BRIDGE=\"$Disable_Bridge\"]" >> .config
 echo "CONFIG_CREATE_IPV6_LAN=\"$Create_Ipv6_Lan\"" >> .config
 
 # IPV6、IPV4 选择
@@ -99,7 +99,7 @@ export kernel_usage="stable"
 echo "CONFIG_AMLOGIC_MODEL=\"$amlogic_model\"" >> .config
 echo "CONFIG_AMLOGIC_KERNEL=\"$amlogic_kernel\"" >> .config
 echo "CONFIG_AUTO_KERNEL=\"$auto_kernel\"" >> .config
-echo "CONFIG_ROOTFS_SIZE=\"$rootfs_size\"" >> .config
+echo "CONFIG_ROOTFS_SIZE=\"$rootfs_size\"]" >> .config
 echo "CONFIG_KERNEL_USAGE=\"$kernel_usage\"" >> .config
 
 # 修改插件名字
