@@ -86,12 +86,26 @@ fi
 # 方法 2: 修改 /etc/banner（适用于所有 OpenWrt 固件）
 echo "Custom Build: $Customized_Information" >> package/base-files/files/etc/banner
 
-# 方法 3: 写入 UCI 默认设置，确保 LuCI 显示
+# 方法 1: 修改 /etc/banner，确保终端显示个性签名
+echo "-----------------------------------------------------" >> package/base-files/files/etc/banner
+echo " Custom Build: $Customized_Information" >> package/base-files/files/etc/banner
+echo "-----------------------------------------------------" >> package/base-files/files/etc/banner
+
+# 方法 2: 写入 UCI 默认设置，确保 LuCI 显示个性签名
 mkdir -p package/base-files/files/etc/uci-defaults
 cat << EOF >> package/base-files/files/etc/uci-defaults/99-custom-settings
 uci set system.@system[0].description='Custom Build: $Customized_Information'
 uci commit system
 EOF
+
+# 方法 3: 修改 ImmortalWrt 的版本信息文件（如果存在）
+# ImmortalWrt 通常使用 package/base-files/files/lib/functions/immortalwrt.sh 或类似文件
+if [ -f package/base-files/files/lib/functions/immortalwrt.sh ]; then
+    sed -i "s/ImmortalWrt/Custom Build $Customized_Information/g" package/base-files/files/lib/functions/immortalwrt.sh
+else
+    echo "Warning: immortalwrt.sh not found, skipping version string replacement."
+fi
+
 # 确保首次启动时也生效
 cat << EOF >> package/base-files/files/etc/uci-defaults/99-custom-settings
 echo "$Customized_Information" >> /etc/banner
