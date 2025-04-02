@@ -72,15 +72,26 @@ OpenClash_branch="0"                    # 0 为 master 分支，1 为 dev 分支
 echo "CONFIG_OPENCLASH_BRANCH=\"$OpenClash_branch\"" >> .config
 
 # 个性签名
-Customized_Information="༄ 目目+࿐$(TZ=UTC-8 date '+%Y.%m.%d')"
+Customized_Information="༄ 目目+࿐$(TZ=UTC-8 date '+%Y.%m.%d')"  # 个性签名
 echo "CONFIG_CUSTOMIZED_INFORMATION=\"$Customized_Information\"" >> .config
-# 修改 banner 文件
-mkdir -p package/base-files/files/etc
-if [ -f package/base-files/files/etc/banner ]; then
-    sed -i "s/OpenWrt/$Customized_Information OpenWrt/g" package/base-files/files/etc/banner
+
+# 将个性签名嵌入固件版本信息
+# 方法 1: 修改 zzz-default-settings（适用于大多数 Lean 源码）
+if [ -f package/lean/default-settings/files/zzz-default-settings ]; then
+    sed -i "s/OpenWrt /Custom Build $Customized_Information /g" package/lean/default-settings/files/zzz-default-settings
 else
-    echo -e "Welcome to OpenWrt\n$Customized_Information\n" > package/base-files/files/etc/banner
+    echo "Warning: zzz-default-settings not found, trying to modify banner instead."
 fi
+
+# 方法 2: 修改 /etc/banner（适用于所有 OpenWrt 固件）
+echo "Custom Build: $Customized_Information" >> package/base-files/files/etc/banner
+
+# 方法 3: 写入 UCI 默认设置，确保 LuCI 显示
+mkdir -p package/base-files/files/etc/uci-defaults
+cat << EOF >> package/base-files/files/etc/uci-defaults/99-custom-settings
+uci set system.@system[0].description='Custom Build: $Customized_Information'
+uci commit system
+EOF
 # 确保首次启动时也生效
 cat << EOF >> package/base-files/files/etc/uci-defaults/99-custom-settings
 echo "$Customized_Information" >> /etc/banner
