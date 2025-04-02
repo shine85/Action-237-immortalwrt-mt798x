@@ -1,6 +1,7 @@
 #!/bin/bash
 # Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
-# DIY扩展二合一了，在此处可以增加插件
+# File name: diy-part2-798x.sh
+# Description: OpenWrt DIY script part 2 (After Update feeds)
 
 # 克隆插件
 git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/Nikki
@@ -71,10 +72,19 @@ OpenClash_branch="0"                    # 0 为 master 分支，1 为 dev 分支
 echo "CONFIG_OPENCLASH_BRANCH=\"$OpenClash_branch\"" >> .config
 
 # 个性签名
-Customized_Information="༄ 目目+࿐$(TZ=UTC-8 date '+%Y.%m.%d')"  # 个性签名
+Customized_Information="༄ 目目+࿐$(TZ=UTC-8 date '+%Y.%m.%d')"
 echo "CONFIG_CUSTOMIZED_INFORMATION=\"$Customized_Information\"" >> .config
-[ -f package/lean/default-settings/files/zzz-default-settings ] && \
-    sed -i "s/OpenWrt /Custom Build $Customized_Information /g" package/lean/default-settings/files/zzz-default-settings
+# 修改 banner 文件
+mkdir -p package/base-files/files/etc
+if [ -f package/base-files/files/etc/banner ]; then
+    sed -i "s/OpenWrt/$Customized_Information OpenWrt/g" package/base-files/files/etc/banner
+else
+    echo -e "Welcome to OpenWrt\n$Customized_Information\n" > package/base-files/files/etc/banner
+fi
+# 确保首次启动时也生效
+cat << EOF >> package/base-files/files/etc/uci-defaults/99-custom-settings
+echo "$Customized_Information" >> /etc/banner
+EOF
 
 # 更换固件内核
 Replace_Kernel="0"                      # 更换内核版本
