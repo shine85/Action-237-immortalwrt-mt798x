@@ -20,4 +20,5 @@
 
 echo 'src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki' >>feeds.conf.default
 echo 'src-git homeproxy https://github.com/immortalwrt/homeproxy' >>feeds.conf.default
-echo 'src-git autoupdate https://github.com/281677160/luci-app-autoupdate' >>feeds.conf.default
+src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main package/Nikki
+git clone -b main https://github.com/nikkinikki-org/OpenWrt-nikki.git package/Nikki
