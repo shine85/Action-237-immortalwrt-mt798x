@@ -9,7 +9,7 @@
 # 硬盘释放来自于https://github.com/klttr/ActionsBuildOpenWRT
 
 # 构建 mt798X / Build mt798X
-name: 构建 mt798X
+name: 构建-798x -immortalwrt
 
 on:
   repository_dispatch:
