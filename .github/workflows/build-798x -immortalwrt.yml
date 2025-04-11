@@ -32,7 +32,7 @@ env:
   REPO_URL: https://github.com/redfrog999/immortalwrt.git
   REPO_BRANCH: openwrt-24.10
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: .config
+  CONFIG_FILE: immortalwrt -mt7981.txt
   DIY_P1_SH: diy-part1-798x.sh
   DIY_P2_SH: diy-part2-798x.sh
   UPLOAD_BIN_DIR: false
@@ -146,7 +146,7 @@ jobs:
         cd ImmortalWrt
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE .config
         make defconfig    
-        
+
     - name: SSH 连接
       uses: P3TERX/ssh2actions@v1.0.0
       if: github.event.inputs.ssh == 'true'
