@@ -9,7 +9,7 @@
 # 硬盘释放来自于https://github.com/klttr/ActionsBuildOpenWRT
 
 # 构建 mt798X / Build mt798X
-name: 2305-798x -immortalwrt
+name:  2305-798x -immortalwrt
 
 on:
   repository_dispatch:
@@ -50,8 +50,8 @@ jobs:
     - name: 检查服务器性能 / Check Server Performance
       run: |
         echo "警告⚠"
-        echo "分配的服务器性能有限,若选择的插件过多,务必注意CPU性能!"
-        echo -e "已知CPU型号(降序): 7763,8370C,8272CL,8171M,E5-2673\n"
+        echo "分配的服务器性能有限，若选择的插件过多，务必注意CPU性能！"
+        echo -e "已知CPU型号(降序): 7763，8370C，8272CL，8171M，E5-2673\n"
         echo "--------------------------CPU信息--------------------------"
         echo "CPU物理数量: $(cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l)"
         echo "CPU核心数量: $(nproc)"
@@ -100,7 +100,7 @@ jobs:
         sudo -E apt-get -y clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
-        sudo chown $USER:$USER /workdir  # 修改为正确的用户:组设置,避免潜在错误
+        sudo chown $USER:$USER /workdir  # 修改为正确的用户:组设置，避免潜在错误
 
     - name: 检出代码 / Checkout
       uses: actions/checkout@main
@@ -140,13 +140,7 @@ jobs:
         chmod +x $DIY_P2_SH
         cd ImmortalWrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
-
-    - name: 加载配置 / Load Configuration
-      run: |
-        cd ImmortalWrt
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE .config
-        make defconfig
-
+        
     - name: SSH 连接
       uses: P3TERX/ssh2actions@v1.0.0
       if: github.event.inputs.ssh == 'true'
@@ -157,7 +151,9 @@ jobs:
     - name: 下载软件包 / Download package
       id: package
       run: |
+        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE ImmortalWrt/.config
         cd ImmortalWrt
+        make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
@@ -205,9 +201,9 @@ jobs:
       run: |
         echo "RELEASE_TAG=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "编译时间:$(date +'%Y年%m月%d日 %H点%M分')" >> release.txt
-        # echo "默认网关:192.168.50.1" >> release.txt
-        # echo "默认插件:"$(cat extra.config|sed 's/#.*//g;s/CONFIG_PACKAGE_.*=n//g'|sed 's/CONFIG_PACKAGE_\(.*\)=y/\1/g')|sed 's/ /、/g' >> release.txt
+        echo "编译时间：$(date +'%Y年%m月%d日 %H点%M分')" >> release.txt
+        # echo "默认网关：192.168.50.1" >> release.txt
+        # echo "默认插件："$(cat extra.config|sed 's/#.*//g;s/CONFIG_PACKAGE_.*=n//g'|sed 's/CONFIG_PACKAGE_\(.*\)=y/\1/g')|sed 's/ /、/g' >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
          mv ImmortalWrt/.config ImmortalWrt/build.config
 
