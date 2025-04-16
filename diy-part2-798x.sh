@@ -2,9 +2,11 @@
 # Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
 # DIY扩展二合一了，在此处可以增加插件
 
-# 克隆插件
-git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/Nikki
-git clone https://github.com/281677160/luci-app-autoupdate package/autoupdate
+echo "开始 DIY2 配置……"
+echo "========================="
+
+chmod +x ${GITHUB_WORKSPACE}/immortalwrt/function.sh
+source ${GITHUB_WORKSPACE}/immortalwrt/function.sh
 
 # 创建 UCI 默认配置文件目录
 mkdir -p package/base-files/files/etc/uci-defaults
@@ -307,3 +309,11 @@ cat ${GITHUB_WORKSPACE}/immortalwrt/default-settings >> package/emortal/default-
 if [ -n "$(ls -A "${GITHUB_WORKSPACE}/immortalwrt/diy" 2>/dev/null)" ]; then
 	cp -Rf ${GITHUB_WORKSPACE}/immortalwrt/diy/* .
 fi
+
+#./scripts/feeds update -a
+#./scripts/feeds install -a
+
+make defconfig
+
+echo "========================="
+echo " DIY2 配置完成……"
