@@ -18,7 +18,7 @@ on:
       Cache:
         description: '使用缓存加速 OpenWrt 编译 / Using cache to speed up OpenWrt compilation.'
         required: true
-        default: 'true'
+        default: 'false'
         type: choice
         options:
           - 'true'

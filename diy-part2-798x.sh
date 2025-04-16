@@ -286,21 +286,6 @@ EOF
 [ -d package ] && find package/ -type f -exec sed -i 's/"管理权"/"管理权"/g' {} +
 [ -d package ] && find package/ -type f -exec sed -i 's/"带宽监控"/"带宽监控"/g' {} +
 
-# 清理不需要的文件
-CLEAR_PATH="./clear_list.txt"
-cat > "$CLEAR_PATH" << EOF
-packages
-config.buildinfo
-feeds.buildinfo
-sha256sums
-version.buildinfo
-profiles.json
-openwrt-x86-64-generic-kernel.bin
-openwrt-x86-64-generic.manifest
-openwrt-x86-64-generic-squashfs-rootfs.img.gz
-EOF
-
-
 # 自定义默认配置
 sed -i '/exit 0$/d' package/emortal/default-settings/files/99-default-settings
 cat ${GITHUB_WORKSPACE}/immortalwrt/default-settings >> package/emortal/default-settings/files/99-default-settings
