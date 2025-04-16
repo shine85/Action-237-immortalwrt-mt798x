@@ -36,25 +36,25 @@ echo "CONFIG_MANDATORY_THEME=\"$Mandatory_theme\"" >> .config
 echo "CONFIG_DEFAULT_THEME=\"$Default_theme\"" >> .config
 
 # 旁路由选项
-Gateway_Settings="192.168.150.1"       # IPv4 网关
-DNS_Settings="192.168.151.2 223.5.5.5" # DNS 设置
-Broadcast_Ipv4="0"                      # IPv4 广播
-Disable_DHCP="1"                        # 关闭 DHCP
-Disable_Bridge="1"                      # 去掉桥接模式
-Create_Ipv6_Lan="0"                     # 创建 IPv6 LAN
-echo "CONFIG_GATEWAY_SETTINGS=\"$Gateway_Settings\"" >> .config
-echo "CONFIG_DNS_SETTINGS=\"$DNS_Settings\"" >> .config
-echo "CONFIG_BROADCAST_IPV4=\"$Broadcast_Ipv4\"" >> .config
-echo "CONFIG_DISABLE_DHCP=\"$Disable_DHCP\"" >> .config
-echo "CONFIG_DISABLE_BRIDGE=\"$Disable_Bridge\"" >> .config
+# Gateway_Settings="192.168.150.1"       # IPv4 网关
+# DNS_Settings="192.168.151.2 223.5.5.5" # DNS 设置
+# Broadcast_Ipv4="0"                      # IPv4 广播
+# Disable_DHCP="1"                        # 关闭 DHCP
+# Disable_Bridge="1"                      # 去掉桥接模式
+# Create_Ipv6_Lan="0"                     # 创建 IPv6 LAN
+# echo "CONFIG_GATEWAY_SETTINGS=\"$Gateway_Settings\"" >> .config
+# echo "CONFIG_DNS_SETTINGS=\"$DNS_Settings\"" >> .config
+# echo "CONFIG_BROADCAST_IPV4=\"$Broadcast_Ipv4\"" >> .config
+# echo "CONFIG_DISABLE_DHCP=\"$Disable_DHCP\"" >> .config
+# # echo "CONFIG_DISABLE_BRIDGE=\"$Disable_Bridge\"" >> .config
 echo "CONFIG_CREATE_IPV6_LAN=\"$Create_Ipv6_Lan\"" >> .config
-cat << EOF >> package/base-files/files/etc/uci-defaults/99-custom-settings
-[ "$Gateway_Settings" != "0" ] && uci set network.lan.gateway='$Gateway_Settings'
-[ "$DNS_Settings" != "0" ] && uci set network.lan.dns='$DNS_Settings'
-[ "$Disable_DHCP" = "1" ] && uci set dhcp.lan.ignore='1'
-[ "$Disable_Bridge" = "1" ] && uci delete network.lan.type
-uci commit
-EOF
+# cat << EOF >> package/base-files/files/etc/uci-defaults/99-custom-settings
+# [ "$Gateway_Settings" != "0" ] && uci set network.lan.gateway='$Gateway_Settings'
+# [ "$DNS_Settings" != "0" ] && uci set network.lan.dns='$DNS_Settings'
+# [ "$Disable_DHCP" = "1" ] && uci set dhcp.lan.ignore='1'
+# [ "$Disable_Bridge" = "1" ] && uci delete network.lan.type
+# uci commit
+# EOF
 
 # IPV6、IPV4 选择
 Enable_IPV6_function="0"                # 启用 IPv6
