@@ -1,19 +1,12 @@
 #
-# Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
+# 描述：使用 GitHub Actions 构建 OpenWrt
 #
-# This is free software, licensed under the MIT License.
-# See /LICENSE for more information.
-#
-# https://github.com/P3TERX/Actions-OpenWrt
-# Description: Build OpenWrt using GitHub Actions
-# 硬盘释放来自于https://github.com/klttr/ActionsBuildOpenWRT
 
-# 构建 mt798X / Build mt798X
-name:  2305-immortalwrt-798x天灵
+name: build-360T7-23.05-immortalwrt # 工作流名称
 
 on:
-  repository_dispatch:
-  workflow_dispatch:
+  repository_dispatch: 				# 仓库分派事件触发
+  workflow_dispatch: 				# 手动触发工作流
     inputs:
       Cache:
         description: '使用缓存加速 OpenWrt 编译 / Using cache to speed up OpenWrt compilation.'
@@ -28,39 +21,41 @@ on:
         required: false
         type: boolean
         default: false
+#  schedule:
+#    - cron: 0 8 * * 5 # 定时触发（每周五8点，已注释）
+
 env:
-  REPO_URL: https://github.com/immortalwrt/immortalwrt.git
-  REPO_BRANCH: openwrt-23.05
-  FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: .config.360t72305-immortalwrt-798x.bak
-  DIY_P1_SH: diy-part1-798x.sh
-  DIY_P2_SH: diy-part2-798x.sh
-  UPLOAD_BIN_DIR: false
-  UPLOAD_FIRMWARE: true
-  UPLOAD_RELEASE: true
-  TZ: Asia/Shanghai
+  REPO_URL: https://github.com/immortalwrt/immortalwrt # 仓库地址
+  REPO_BRANCH: openwrt-23.05 # 分支名称
+  DEVICE_NAME: 360t7-Im # 设备名称
+  FILES: immortalwrt/files # 自定义文件目录
+  FEEDS_CONF: immortalwrt/feeds.conf.default # 软件源配置文件
+  CONFIG_FILE: immortalwrt/.config.360t7-23.05-immortalwrt.bak # 自定义配置文件
+  DIY_P1_SH: immortalwrt/diy-part1.sh # 自定义脚本1
+  DIY_P2_SH: immortalwrt/diy-part2-T7.2305.sh # 自定义脚本2
+  UPLOAD_BIN_DIR: false # 是否上传bin目录
+  UPLOAD_FIRMWARE: true # 是否上传固件
+  UPLOAD_COWTRANSFER: false # 是否上传到Cowtransfer
+  UPLOAD_WETRANSFER: false # 是否上传到WeTransfer
+  UPLOAD_RELEASE: false # 是否创建GitHub Release
+  TZ: Asia/Shanghai # 时区
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    permissions:
-      actions: write
-      contents: write
+    runs-on: ubuntu-24.04 # 运行环境
+    defaults:
+      run:
+        shell: bash # 默认使用bash
+
     steps:
-    - name: 检查服务器性能 / Check Server Performance
+        
+    - name: Checkout # 检出仓库代码
+      uses: actions/checkout@main
+
+    - name: Setup variables # 配置环境变量
       run: |
-        echo "警告⚠"
-        echo "分配的服务器性能有限，若选择的插件过多，务必注意CPU性能！"
-        echo -e "已知CPU型号(降序): 7763，8370C，8272CL，8171M，E5-2673\n"
-        echo "--------------------------CPU信息--------------------------"
-        echo "CPU物理数量: $(cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l)"
-        echo "CPU核心数量: $(nproc)"
-        echo -e "CPU型号信息:$(cat /proc/cpuinfo | grep -m1 name | awk -F: '{print $2}')\n"
-        echo "--------------------------内存信息--------------------------"
-        echo "已安装内存详细信息:"
-        echo -e "$(sudo lshw -short -C memory | grep GiB)\n"
-        echo "--------------------------硬盘信息--------------------------"
-        echo "硬盘数量: $(ls /dev/sd* | grep -v [1-9] | wc -l)" && df -hT
+        sudo timedatectl set-timezone "$TZ" # 设置时区
+        echo "status=success" >> ${GITHUB_OUTPUT} # 输出状态
 
     - name: 优化磁盘空间 / Optimize Disk Space
       uses: hugoalh/disk-space-optimizer-ghaction@v0.8
@@ -83,149 +78,170 @@ jobs:
         npm_clean: "True"
         os_swap: "True"
 
-    - name: 初始化环境 / Initialization environment
-      env:
-        DEBIAN_FRONTEND: noninteractive
+    - name: Show system # 显示服务器性能/系统信息
       run: |
-        sudo -E apt-get update -y
-        sudo -E apt-get full-upgrade -y
-        sudo -E apt-get install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-        bzip2 ccache clang clangd cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib \
-        g++-multilib git gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev libglib2.0-dev \
-        libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5 libncursesw5-dev libreadline-dev \
-        libssl-dev libtool lld lldb lrzsz mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python2.7 \
-        python3 python3-pip python3-ply python3-docutils qemu-utils re2c rsync scons squashfs-tools subversion swig \
-        texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
-        sudo -E apt-get -y autoremove --purge
-        sudo -E apt-get -y clean
-        sudo timedatectl set-timezone "$TZ"
-        sudo mkdir -p /workdir
-        sudo chown $USER:$USER /workdir  # 修改为正确的用户:组设置，避免潜在错误
+        echo -e "\n\e[1;32mCPU:\e[0m"
+        echo "$(grep 'model name' /proc/cpuinfo | head -1 | awk -F ': ' '{print $2}') ($(grep 'cpu MHz' /proc/cpuinfo | head -1 | awk -F ': ' '{print $2}')MHz) x $(grep processor /proc/cpuinfo  | wc -l)" # CPU信息
+        echo -e "\n\e[1;32mMemory:\e[0m"
+        free -h # 内存信息
+        echo -e "\n\e[1;32mStorage:\e[0m"
+        df -Th / /mnt # 存储信息
+        echo -e "\n\e[1;32mSystem:\e[0m"
+        lsb_release -a # 系统版本
+        echo -e "\n\e[1;32mKernel:\e[0m"
+        uname -a # 内核信息
+        echo
 
-    - name: 检出代码 / Checkout
-      uses: actions/checkout@main
-
-    - name: 克隆源代码 / Clone source code
-      working-directory: /workdir
-      run: |
-        df -hT $PWD
-        git clone $REPO_URL -b $REPO_BRANCH ImmortalWrt
-        ln -sf /workdir/ImmortalWrt $GITHUB_WORKSPACE/ImmortalWrt
-
-    - name: 缓存工具链 / Cache Toolchain
-      uses: HiGarfield/cachewrtbuild@main
-      if: github.event.inputs.Cache == 'true'
+    - name: Free disk space  # 清理磁盘空间
+      uses: sbwml/actions@free-disk
       with:
-        ccache: 'false'
-        clean: 'false'
-        mixkey: 'aarch64'
-        prefix: ${{ github.workspace }}/ImmortalWrt
+        build-mount-path: /builder # 构建路径
 
-    - name: 加载自定义 feeds (DIY_P1_SH) / Load custom feeds (DIY_P1_SH)
+    - name: Build System Setup # 设置OpenWrt构建环境
+      uses: sbwml/actions@openwrt-build-setup
+
+    - name: Install LLVM # 安装LLVM编译工具
+      uses: sbwml/actions@install-llvm
+
+    - name: Clone source code # 克隆OpenWrt源码
+      working-directory: /builder
       run: |
-        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF ImmortalWrt/feeds.conf.default
-        chmod +x $DIY_P1_SH
-        cd ImmortalWrt
-        $GITHUB_WORKSPACE/$DIY_P1_SH
+        df -hT $PWD # 显示磁盘使用情况
+        git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt # 克隆指定分支
+        ln -sf /builder/openwrt $GITHUB_WORKSPACE/openwrt # 创建符号链接
 
-    - name: 更新 feeds / Update feeds
-      run: cd ImmortalWrt && ./scripts/feeds update -a
-
-    - name: 安装 feeds / Install feeds
-      run: cd ImmortalWrt && ./scripts/feeds install -a
-
-    - name: 加载自定义配置 (DIY_P2_SH) / Load custom configuration (DIY_P2_SH)
+    - name: Load custom feeds # 加载自定义feeds配置
       run: |
-        [ -e files ] && mv files ImmortalWrt/files
-        chmod +x $DIY_P2_SH
-        cd ImmortalWrt
-        $GITHUB_WORKSPACE/$DIY_P2_SH
-        
-    - name: SSH 连接
-      uses: P3TERX/ssh2actions@v1.0.0
-      if: github.event.inputs.ssh == 'true'
-      env:
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default # 移动feeds配置文件
+        chmod +x $DIY_P1_SH # 赋予脚本执行权限
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_P1_SH # 执行自定义脚本1
 
-    - name: 下载软件包 / Download package
+    - name: Update feeds # 更新软件源
+      run: cd openwrt && ./scripts/feeds update -a
+
+    - name: Install feeds # 安装软件源
+      run: cd openwrt && ./scripts/feeds install -a
+
+    - name: Load custom configuration # 加载自定义配置文件
+      run: |
+        [ -e $FILES ] && mv $FILES openwrt/files # 移动自定义文件
+        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config # 移动配置文件
+        chmod +x $DIY_P2_SH # 赋予脚本执行权限
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_P2_SH # 执行自定义脚本2
+        #make defconfig # 生成默认配置（已注释）
+
+    - name: Download package # 下载所需软件包
       id: package
       run: |
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE ImmortalWrt/.config
-        cd ImmortalWrt
-        make defconfig
-        make download -j8
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
+        cd openwrt
+        make defconfig # 生成默认配置
+        make download -j8 # 多线程下载
+        find dl -size -1024c -exec ls -l {} \; # 查找小文件
+        find dl -size -1024c -exec rm -f {} \; # 删除小文件
 
-    - name: 编译固件 / Compile the firmware
+    - name: Compile the firmware # 编译OpenWrt固件
       id: compile
       run: |
-        cd ImmortalWrt
-        echo -e "$(nproc) thread compile"
-        make -j$(nproc) || make -j1 V=s
-        echo "status=success" >> $GITHUB_OUTPUT
-        echo "DEVICE_NAME=_mt7981" >> $GITHUB_ENV
-        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+        cd openwrt
+        echo -e "$(nproc) thread compile" # 显示编译线程数
+        make -j$(nproc) || make -j1 || make -j1 V=s # 多线程编译，失败则单线程或显示详细日志
+        echo "status=success" >> $GITHUB_OUTPUT # 输出状态
+        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME # 提取设备名称
+        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV # 设置设备名称变量
+        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV # 设置文件日期变量
 
-    - name: 检查空间使用情况 / Check space usage
+    - name: Check space usage # 检查磁盘空间
       if: (!cancelled())
       run: df -hT
 
-    - name: 上传 bin 目录 / Upload bin directory
+    - name: Upload bin directory # 上传bin目录（视配置）
       uses: actions/upload-artifact@main
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
       with:
-        name: ImmortalWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
-        path: ImmortalWrt/bin
+        name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }} # 上传文件名
+        path: openwrt/bin # 上传路径
 
-    - name: 整理文件 / Organize files
+    - name: Organize files # 整理固件文件
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
-        cd ImmortalWrt/bin/targets/*/*
-        rm -rf packages
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-        echo "status=success" >> $GITHUB_OUTPUT
+        cd openwrt/bin/targets/*/*
+        rm -rf packages # 删除packages目录
+        rm -rf feeds.buildinfo # 删除feeds构建信息
+        rm -rf sha256sums # 删除校验文件
+        rm -rf version.buildinfo # 删除版本信息
+        rm -rf profiles.json # 删除profiles文件
+        rm -rf *.manifest # 删除manifest文件
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV # 设置固件路径变量
+        echo "status=success" >> $GITHUB_OUTPUT # 输出状态
 
-    - name: 上传固件目录 / Upload firmware directory
+    - name: Upload firmware directory # 上传固件
       uses: actions/upload-artifact@main
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        name: ImmortalWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
-        path: ${{ env.FIRMWARE }}
+        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }} # 上传文件名
+        path: ${{ env.FIRMWARE }} # 上传路径
 
-    - name: 生成发布标签 / Generate release tag
-      id: tag
-      if: env.UPLOAD_RELEASE == 'true' && steps.compile.outputs.status == 'success' && !cancelled()
+    - name: Upload firmware to cowtransfer # 上传到Cowtransfer（视配置）
+      id: cowtransfer
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
       run: |
-        echo "RELEASE_TAG=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
-        touch release.txt
-        echo "编译时间：$(date +'%Y年%m月%d日 %H点%M分')" >> release.txt
-        # echo "默认网关：192.168.50.1" >> release.txt
-        # echo "默认插件："$(cat extra.config|sed 's/#.*//g;s/CONFIG_PACKAGE_.*=n//g'|sed 's/CONFIG_PACKAGE_\(.*\)=y/\1/g')|sed 's/ /、/g' >> release.txt
-        echo "status=success" >> $GITHUB_OUTPUT
-         mv ImmortalWrt/.config ImmortalWrt/build.config
+        curl -fsSL git.io/file-transfer | sh # 下载文件传输脚本
+        ./transfer cow --block 2621440 -s -p 64 --no-progress ${FIRMWARE} 2>&1 | tee cowtransfer.log # 上传文件
+        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)" # 输出链接
+        echo "url=$(cat cowtransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT # 保存链接
 
-    - name: 上传固件到发布 / Upload firmware to release
+    - name: Upload firmware to WeTransfer # 上传到WeTransfer（视配置）
+      id: wetransfer
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_WETRANSFER == 'true' && !cancelled()
+      run: |
+        curl -fsSL git.io/file-transfer | sh # 下载文件传输脚本
+        ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log # 上传文件
+        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)" # 输出链接
+        echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT # 保存链接
+
+    - name: Generate release tag # 生成GitHub Release标签
+      id: tag
+      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      run: |
+        echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT # 设置标签名
+        touch release.txt # 创建发布说明文件
+        [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt # 添加Cowtransfer链接
+        [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt # 添加WeTransfer链接
+        echo "status=success" >> $GITHUB_OUTPUT # 输出状态
+
+    - name: Upload firmware to release # 上传固件到GitHub Release
       uses: softprops/action-gh-release@v2
       if: steps.tag.outputs.status == 'success' && !cancelled()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub令牌
       with:
-        token: ${{ github.token }}
-        tag_name: ${{ steps.tag.outputs.RELEASE_TAG }}
-        body_path: release.txt
-        files: |
-          ${{ env.FIRMWARE }}/*factory.bin
-          ${{ env.FIRMWARE }}/*sysupgrade.bin
-          ImmortalWrt/build.config
+        tag_name: ${{ steps.tag.outputs.release_tag }} # 标签名
+        body_path: release.txt # 发布说明文件
+        files: ${{ env.FIRMWARE }}/* # 上传固件文件
 
-    - name: 删除旧发布和工作流 / Remove old Releases and Workflows
-      uses: ophub/delete-releases-workflows@main
+    - name: Remove old artifacts # 删除过期的Artifacts
+      uses: c-hive/gha-remove-artifacts@v1
+      with:
+        age: '15 days' # 保留15天的Artifacts
+        # skip-tags: true # 跳过带标签的（已注释）
+        # skip-recent: 5 # 保留最近5个（已注释）
+
+    - name: Delete workflow runs # 删除旧的工作流记录
+      uses: Mattraks/delete-workflow-runs@main
+      with:
+        token: ${{ github.token }} # GitHub令牌
+        repository: ${{ github.repository }} # 仓库名称
+        retain_days: 1 # 保留1天的记录
+        keep_minimum_runs: 1 # 至少保留1次运行
+
+    - name: Remove old Releases # 删除旧的GitHub Release
+      uses: dev-drprasad/delete-older-releases@v0.3.4
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
-        delete_releases: true
-        releases_keep_latest: 5
-        delete_tags: true
-        delete_workflows: true
-        workflows_keep_day: 10
-        gh_token: ${{ github.token }}
+        keep_latest: 6 # 保留最新的6个Release
+        delete_tags: true # 删除对应的标签
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub令牌
