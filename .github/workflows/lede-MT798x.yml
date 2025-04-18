@@ -1,12 +1,8 @@
-#
-# 描述：使用 GitHub Actions 构建 OpenWrt
-#
-
-name: 构建-lede-MT798x # 工作流名称
+name: 构建-lede-MT798x
 
 on:
-  repository_dispatch: 				# 仓库分派事件触发
-  workflow_dispatch: 				# 手动触发工作流
+  repository_dispatch:
+  workflow_dispatch:
     inputs:
       Cache:
         description: '使用缓存加速 OpenWrt 编译 / Using cache to speed up OpenWrt compilation.'
@@ -21,60 +17,62 @@ on:
         required: false
         type: boolean
         default: false
-#  schedule:
-#    - cron: 0 8 * * 5 # 定时触发（每周五8点，已注释）
 
 env:
-  REPO_URL: https://github.com/coolsnowwolf/lede # 仓库地址
-  REPO_BRANCH: master # 分支名称
-  DEVICE_NAME: 360t7-Im # 设备名称
-  FILES: immortalwrt/files # 自定义文件目录
-  FEEDS_CONF: immortalwrt/feeds.conf.default # 软件源配置文件
-  CONFIG_FILE: immortalwrt/360t7lede-798x.config # 自定义配置文件
-  DIY_P1_SH: immortalwrt/diy-part1-798x.sh # 自定义脚本1
-  DIY_P2_SH: immortalwrt/diy-part2-798x.sh # 自定义脚本2
-  UPLOAD_BIN_DIR: false # 是否上传bin目录
-  UPLOAD_FIRMWARE: true # 是否上传固件
-  UPLOAD_COWTRANSFER: false # 是否上传到Cowtransfer
-  UPLOAD_WETRANSFER: false # 是否上传到WeTransfer
-  UPLOAD_RELEASE: false # 是否创建GitHub Release
-  TZ: Asia/Shanghai # 时区
+  REPO_URL: https://github.com/coolsnowwolf/lede
+  REPO_BRANCH: master
+  DEVICE_NAME: 360t7-Im
+  FILES: immortalwrt/files
+  FEEDS_CONF: immortalwrt/feeds.conf.default
+  CONFIG_FILE: immortalwrt/360t7lede-798x.config
+  DIY_P1_SH: immortalwrt/diy-part1-798x.sh
+  DIY_P2_SH: immortalwrt/diy-part2-798x.sh
+  UPLOAD_BIN_DIR: false
+  UPLOAD_FIRMWARE: true
+  UPLOAD_COWTRANSFER: false
+  UPLOAD_WETRANSFER: false
+  UPLOAD_RELEASE: false
+  TZ: Asia/Shanghai
 
 jobs:
   build:
-    runs-on: ubuntu-24.04 # 运行环境
+    runs-on: ubuntu-24.04
     defaults:
       run:
-        shell: bash # 默认使用bash
+        shell: bash
 
     steps:
-        
     - name: Checkout 检出仓库代码
       uses: actions/checkout@main
 
     - name: Setup variables 配置环境变量
       run: |
-        sudo timedatectl set-timezone "$TZ" # 设置时区
-        echo "status=success" >> ${GITHUB_OUTPUT} # 输出状态
+        sudo timedatectl set-timezone "$TZ"
+        echo "status=success" >> ${GITHUB_OUTPUT}
 
     - name: Show system 显示服务器性能/系统信息
       run: |
         echo -e "\n\e[1;32mCPU:\e[0m"
-        echo "$(grep 'model name' /proc/cpuinfo | head -1 | awk -F ': ' '{print $2}') ($(grep 'cpu MHz' /proc/cpuinfo | head -1 | awk -F ': ' '{print $2}')MHz) x $(grep processor /proc/cpuinfo  | wc -l)" # CPU信息
+        echo "$(grep 'model name' /proc/cpuinfo | head -1 | awk -F ': ' '{print $2}') ($(grep 'cpu MHz' /proc/cpuinfo | head -1 | awk -F ': ' '{print $2}')MHz) x $(grep processor /proc/cpuinfo  | wc -l)"
         echo -e "\n\e[1;32mMemory:\e[0m"
-        free -h # 内存信息
+        free -h
         echo -e "\n\e[1;32mStorage:\e[0m"
-        df -Th / /mnt # 存储信息
+        df -Th / /mnt
         echo -e "\n\e[1;32mSystem:\e[0m"
-        lsb_release -a # 系统版本
+        lsb_release -a
         echo -e "\n\e[1;32mKernel:\e[0m"
-        uname -a # 内核信息
+        uname -a
         echo
 
     - name: Free disk space 清理优化磁盘空间
       uses: sbwml/actions@free-disk
       with:
-        build-mount-path: /builder # 构建路径
+        build-mount-path: /builder
+
+    - name: Install dependencies 安装依赖
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential ccache ecj fastjar file g++ gawk gettext git java-propose-classpath libelf-dev libncurses5-dev libncursesw5-dev libssl-dev python3 python3-pyelftools unzip wget
 
     - name: Build System Setup 构建环境
       uses: sbwml/actions@openwrt-build-setup
@@ -82,20 +80,35 @@ jobs:
     - name: Install LLVM 安装LLVM编译工具
       uses: sbwml/actions@install-llvm
 
+    - name: Clean workspace 清理工作目录
+      run: |
+        rm -rf /builder/openwrt
+
     - name: Clone source code 克隆源码
       working-directory: /builder
       run: |
-        df -hT $PWD # 显示磁盘使用情况
-        git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt # 克隆指定分支
-        ln -sf /builder/openwrt $GITHUB_WORKSPACE/openwrt # 创建符号链接
+        df -hT $PWD
+        git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt || (sleep 5; git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt)
+        ln -sf /builder/openwrt $GITHUB_WORKSPACE/openwrt
+
+    - name: Create version file 创建 version 文件
+      run: |
+        cd openwrt
+        echo "ImmortalWrt" > version
 
     - name: Load custom feeds 加载自定义feeds配置
       run: |
-        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default # 移动feeds配置文件
-        chmod +x $DIY_P1_SH # 赋予脚本执行权限
+        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
+        chmod +x $DIY_P1_SH
         cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P1_SH # 执行自定义脚本1
-        sed -i 's/+firewall/+uci-firewall/g' feeds/luci/applications/luci-app-firewall/Makefile # 修改 luci-app-firewall 的 Makefile
+        $GITHUB_WORKSPACE/$DIY_P1_SH
+        ./scripts/feeds update -a
+        ./scripts/feeds install luci-app-firewall
+        if [ -f feeds/luci/applications/luci-app-firewall/Makefile ]; then
+          sed -i 's/+firewall/+uci-firewall/g' feeds/luci/applications/luci-app-firewall/Makefile
+        else
+          echo "luci-app-firewall Makefile not found"
+        fi
 
     - name: Update feeds 更新软件源
       run: cd openwrt && ./scripts/feeds update -a
@@ -105,123 +118,121 @@ jobs:
 
     - name: Load custom configuration 加载自定义配置文件
       run: |
-        [ -e $FILES ] && mv $FILES openwrt/files # 移动自定义文件
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config # 移动配置文件
-        chmod +x $DIY_P2_SH # 赋予脚本执行权限
+        [ -e $FILES ] && mv $FILES openwrt/files
+        [ -e $EDD CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+        chmod +x $DIY_P2_SH
         cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P2_SH # 执行自定义脚本2
-        #make defconfig # 生成默认配置（已注释）
+        $GITHUB_WORKSPACE/$DIY_P2_SH
+        make defconfig
 
     - name: Download package 下载所需软件包
       id: package
       run: |
         cd openwrt
-        make defconfig # 生成默认配置
-        make download -j8 # 多线程下载
-        find dl -size -1024c -exec ls -l {} \; # 查找小文件
-        find dl -size -1024c -exec rm -f {} \; # 删除小文件
+        make defconfig
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
 
     - name: Compile the firmware 编译固件
       id: compile
       run: |
         cd openwrt
-        echo -e "$(nproc) thread compile" # 显示编译线程数
-        make -j$(nproc) || make -j1 || make -j1 V=s # 多线程编译，失败则单线程或显示详细日志
-        echo "status=success" >> $GITHUB_OUTPUT # 输出状态
-        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME # 提取设备名称
-        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV # 设置设备名称变量
-        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV # 设置文件日期变量
+        echo -e "$(nproc) thread compile"
+        make -j$(nproc) || make -j1 || make -j1 V=s
+        echo "status=success" >> $GITHUB_OUTPUT
+        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
+        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
+        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
     - name: Check space usage 检查磁盘空间
       if: (!cancelled())
       run: df -hT
 
-    - name: Upload bin directory 上传bin目录（视配置）
+    - name: Upload bin directory 上传bin目录
       uses: actions/upload-artifact@main
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
       with:
-        name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }} # 上传文件名
-        path: openwrt/bin # 上传路径
+        name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        path: openwrt/bin
 
     - name: Organize files 整理固件文件
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
         cd openwrt/bin/targets/*/*
-        rm -rf packages # 删除packages目录
-        rm -rf feeds.buildinfo # 删除feeds构建信息
-        rm -rf sha256sums # 删除校验文件
-        rm -rf version.buildinfo # 删除版本信息
-        rm -rf profiles.json # 删除profiles文件
-        rm -rf *.manifest # 删除manifest文件
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV # 设置固件路径变量
-        echo "status=success" >> $GITHUB_OUTPUT # 输出状态
+        rm -rf packages
+        rm -rf feeds.buildinfo
+        rm -rf sha256sums
+        rm -rf version.buildinfo
+        rm -rf profiles.json
+        rm -rf *.manifest
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware directory 上传固件
       uses: actions/upload-artifact@main
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }} # 上传文件名
-        path: ${{ env.FIRMWARE }} # 上传路径
+        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        path: ${{ env.FIRMWARE }}
 
-    - name: Upload firmware to cowtransfer 上传到Cowtransfer（视配置）
+    - name: Upload firmware to cowtransfer 上传到Cowtransfer
       id: cowtransfer
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
       run: |
-        curl -fsSL git.io/file-transfer | sh # 下载文件传输脚本
-        ./transfer cow --block 2621440 -s -p 64 --no-progress ${FIRMWARE} 2>&1 | tee cowtransfer.log # 上传文件
-        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)" # 输出链接
-        echo "url=$(cat cowtransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT # 保存链接
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer cow --block 2621440 -s -p 64 --no-progress ${FIRMWARE} 2>&1 | tee cowtransfer.log
+        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
+        echo "url=$(cat cowtransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
 
-    - name: Upload firmware to WeTransfer  上传到WeTransfer（视配置）
+    - name: Upload firmware to WeTransfer 上传到WeTransfer
       id: wetransfer
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_WETRANSFER == 'true' && !cancelled()
       run: |
-        curl -fsSL git.io/file-transfer | sh # 下载文件传输脚本
-        ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log # 上传文件
-        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)" # 输出链接
-        echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT # 保存链接
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log
+        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
+        echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
 
     - name: Generate release tag 生成GitHub Release标签
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
-        echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT # 设置标签名
-        touch release.txt # 创建发布说明文件
-        [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt # 添加Cowtransfer链接
-        [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt # 添加WeTransfer链接
-        echo "status=success" >> $GITHUB_OUTPUT # 输出状态
+        echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
+        touch release.txt
+        [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
+        [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
+        echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release 上传固件到GitHub Release
       uses: softprops/action-gh-release@v2
       if: steps.tag.outputs.status == 'success' && !cancelled()
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub令牌
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.tag.outputs.release_tag }} # 标签名
-        body_path: release.txt # 发布说明文件
-        files: ${{ env.FIRMWARE }}/* # 上传固件文件
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        body_path: release.txt
+        files: ${{ env.FIRMWARE }}/*
 
     - name: Remove old artifacts 删除过期的Artifacts
       uses: c-hive/gha-remove-artifacts@v1
       with:
-        age: '15 days' # 保留15天的Artifacts
-        # skip-tags: true # 跳过带标签的（已注释）
-        # skip-recent: 5 # 保留最近5个（已注释）
+        age: '15 days'
 
     - name: Delete workflow runs 删除旧的工作流记录
       uses: Mattraks/delete-workflow-runs@main
       with:
-        token: ${{ github.token }} # GitHub令牌
-        repository: ${{ github.repository }} # 仓库名称
-        retain_days: 1 # 保留1天的记录
-        keep_minimum_runs: 1 # 至少保留1次运行
+        token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        retain_days: 1
+        keep_minimum_runs: 1
 
     - name: Remove old Releases 删除旧的GitHub Release
       uses: dev-drprasad/delete-older-releases@v0.3.4
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
-        keep_latest: 6 # 保留最新的6个Release
-        delete_tags: true # 删除对应的标签
+        keep_latest: 6
+        delete_tags: true
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub令牌
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
