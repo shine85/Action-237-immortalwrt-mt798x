@@ -95,6 +95,7 @@ jobs:
         chmod +x $DIY_P1_SH # 赋予脚本执行权限
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH # 执行自定义脚本1
+        sed -i 's/+firewall/+uci-firewall/g' feeds/luci/applications/luci-app-firewall/Makefile # 修改 luci-app-firewall 的 Makefile
 
     - name: Update feeds 更新软件源
       run: cd openwrt && ./scripts/feeds update -a
