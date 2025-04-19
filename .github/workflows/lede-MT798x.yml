@@ -2,7 +2,7 @@
 # 描述：使用 GitHub Actions 构建 OpenWrt
 #
 
-name: 构建-23.05-immortalwrt-MT798x # 工作流名称
+name: 构建-lede-MT798x # 工作流名称
 
 on:
   repository_dispatch: 				# 仓库分派事件触发
