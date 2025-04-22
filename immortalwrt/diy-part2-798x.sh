@@ -56,6 +56,10 @@ git clone https://github.com/xiaorouji/openwrt-passwall2 package/luci-app-passwa
 rm -rf feeds/luci/applications/luci-app-nikki
 git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/luci-app-nikki
 
+# homeproxy
+rm -rf feeds/luci/applications/luci-app-homeproxy
+git clone https://github.com/immortalwrt/homeproxy package/luci-app-homeproxy
+
 # 优化socat中英翻译
 sed -i 's/仅IPv6/仅 IPv6/g' package/feeds/luci/luci-app-socat/po/zh_Hans/socat.po
 
