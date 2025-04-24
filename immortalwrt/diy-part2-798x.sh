@@ -60,6 +60,14 @@ git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/luci-app-nikki
 rm -rf feeds/luci/applications/luci-app-homeproxy
 git clone https://github.com/immortalwrt/homeproxy package/luci-app-homeproxy
 
+# luci-app-accesscontrol
+rm -rf feeds/luci/applications/luci-app-accesscontrol
+git clone https://github.com/k-szuster/luci-access-control package/luci-app-accesscontrol
+
+# luci-app-turboacc
+rm -rf feeds/luci/applications/luci-app-turboacc
+git clone https://github.com/chenmozhijin/turboacc package/luci-app-turboacc
+
 # 优化socat中英翻译
 sed -i 's/仅IPv6/仅 IPv6/g' package/feeds/luci/luci-app-socat/po/zh_Hans/socat.po
 
