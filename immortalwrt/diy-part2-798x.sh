@@ -60,10 +60,6 @@ git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/luci-app-nikki
 rm -rf feeds/luci/applications/luci-app-homeproxy
 git clone https://github.com/immortalwrt/homeproxy package/luci-app-homeproxy
 
-# luci-app-accesscontrol
-rm -rf feeds/luci/applications/luci-app-accesscontrol
-git clone https://github.com/k-szuster/luci-access-control package/luci-app-accesscontrol
-
 # luci-app-turboacc
 rm -rf feeds/luci/applications/luci-app-turboacc
 git clone https://github.com/chenmozhijin/turboacc package/luci-app-turboacc
