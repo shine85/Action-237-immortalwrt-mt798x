@@ -15,8 +15,8 @@ name: build23.05-360t7-IM
 on:
   repository_dispatch:
   workflow_dispatch:
-  schedule:
-    - cron: 11 3 * * *
+  # schedule:
+  #  - cron: 11 3 * * *
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
   REPO_BRANCH: openwrt-24.10
