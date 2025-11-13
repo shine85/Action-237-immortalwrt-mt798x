@@ -17,15 +17,15 @@
 # echo 'src-git helloworld https://github.com/fw876/helloworld' >>feeds.conf.default
 # echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >>feeds.conf.default
 # echo 'src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages' >>feeds.conf.default
-src-git passwall https://github.com/xiaorouji/openwrt-passwall-packages.git;main package/passwall-packages
+echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall-packages.git;main package/passwall-packages
 # 科学passwall
-src-git passwall2 https://github.com/xiaorouji/openwrt-passwall2.git;main package/luci-app-passwall2-packages
+echo 'src-git passwall2 https://github.com/xiaorouji/openwrt-passwall2' >>feeds.conf.default
 # 科学passwall2
 
-src-git homeproxy https://github.com/immortalwrt/homeproxy.git package/homeproxy
+echo 'src-git homeproxy https://github.com/immortalwrt/homeproxy' >>feeds.conf.default
 #  lede添加不了
-src-git advancedplus https://github.com/sirpdboy/luci-app-advancedplus.git package/advancedplus  
+echo 'src-git advancedplus https://github.com/sirpdboy/luci-app-advancedplus' >>feeds.conf.default
 #进阶设置   lede添加不了
-src-git kucat https://github.com/sirpdboy/luci-theme-kucat.git package/kucat  
+echo 'src-git kucat https://github.com/sirpdboy/luci-theme-kucat' >>feeds.conf.default
 #主题
-src-git filemanager https://github.com/sbwml/luci-app-filemanager.git package/filemanager 
+echo 'src-git filemanager https://github.com/sbwml/luci-app-filemanager' >>feeds.conf.default
